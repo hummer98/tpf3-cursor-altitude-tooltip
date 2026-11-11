@@ -1,0 +1,12 @@
+{
+	"en": {
+		"mod_name": "Cursor Altitude Tooltip",
+		"mod_desc": "While no tool, layer or info window is open, holding the \"Surface Snapping\" key (Alt by default) shows the altitude of the terrain under the mouse cursor in the cursor tooltip, instead of the usual name tooltip. Over buildings and water the ground below is measured.",
+		"cat_altitude": "Altitude"
+	},
+	"ja": {
+		"mod_name": "カーソル位置の標高表示",
+		"mod_desc": "ツール・レイヤー・情報ウィンドウを開いていない通常の地図画面で「地表スナップ」のキー（初期設定は Alt）を押している間、マウスのヒントに通常の名前表示の代わりにカーソル位置の地形の標高を表示します。建物や水面の上では、その下の地面の高さになります。",
+		"cat_altitude": "標高"
+	}
+}

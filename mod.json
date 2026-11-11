@@ -1,0 +1,15 @@
+{
+	"modId": "cursor_altitude_tooltip",
+	"revision": 1,
+	"severityAdd": "None",
+	"severityRemove": "None",
+	"visible": true,
+	"cosmetic": true,
+	"dependencies": null,
+	"incompatibilities": null,
+	"options": null,
+	"preRunScript": { "fileName": "" },
+	"runScript": { "fileName": "" },
+	"postRunScript": { "fileName": "" },
+	"params": null
+}
