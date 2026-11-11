@@ -117,7 +117,7 @@ local function newMods()
 	}
 	local builtin = {
 		ActionTooltip = function(p) return { kind = "ActionTooltip", recipe = p.recipe, param = p.param } end,
-		TextView = function(p) return { kind = "TextView", text = p.text } end,
+		TextView = function(p) return { kind = "TextView", text = p.text, class = p.meta and p.meta.class } end,
 		BoxLayout = function(p) return { kind = "BoxLayout", children = p.children } end,
 	}
 	local tooltips = {
@@ -201,6 +201,18 @@ test("held + on terrain: altitude text instead of the entity tooltip", function(
 	eq(out.children[1].kind, "TextView")
 	eq(out.children[1].text, "標高: 87.7 m")
 	eq(heldIA, "IA_ENHANCED_SNAP")
+end)
+
+test("altitude text carries the base tooltip box class (background, colour)", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	held = true
+	local cls = renderTooltip(m).children[1].class
+	local set = {}
+	for c in cls:gmatch("[^,%s]+") do set[c] = true end
+	eq(set["default-tooltip-configuration"], true)
+	eq(set["font-scale-tooltip"], true)
 end)
 
 test("not held: the base entity tooltip with the same entity ref", function()

@@ -10,12 +10,19 @@
 -- while the plain map view renders (Station Coverage Filter wraps the same
 -- combined function; both wraps chain whichever installs first).
 --
+-- The combined function is also the fallback action of entity windows that
+-- bring none of their own (e.g. only pinned windows open), so the altitude
+-- shows there too; layers, tools and windows with their own action (station,
+-- vehicle, line, industry, town, ...) are not affected.
+--
 -- The replacement tooltip is the base TerrainTooltip "Height" idea (layer
 -- terrain prints api.gui.mouse.getTerrainPosition().z), shown only while the
 -- modifier is held, and falls back to the base entity tooltip otherwise.
 local core = require "cursor_altitude_tooltip::/gui/cat_core.lua"
 
 local map = {}
+
+map.TEXT_CLASS = "font-scale-tooltip, default-tooltip-configuration"
 
 -- one line each, the first time, so a tooltip that never appears in game can
 -- be told apart: wrap not installed / tooltip not rendered / key never seen
@@ -84,8 +91,11 @@ function map.makeRecipe(mods)
 		local text = state:old()
 		local child
 		if text then
+			-- the tooltip box (background, padding, text colour) is styled by
+			-- selectors naming the base recipes (game.css.lua); under our recipe
+			-- only this class brings it, as the LVM selector tooltip does
 			child = builtin.TextView{
-				meta = { class = "font-scale-tooltip", mouseTransparent = true },
+				meta = { class = map.TEXT_CLASS, mouseTransparent = true },
 				text = text,
 			}
 		else
