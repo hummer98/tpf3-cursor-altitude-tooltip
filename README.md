@@ -52,6 +52,7 @@ The code is plain Lua (`content/gui/`):
 | `cat_core.lua` | Pure helpers (text, units), no engine access |
 | `cat_map.lua` | Wraps the plain map view's action and swaps its tooltip |
 | `cat_install.res.lua` / `.script.lua` | Hook run at UI start-up |
+| `_metadata/modinfo.json` | Name, summary and description shown in the game's mod list (translated in `strings.json`, keyed by the English text) |
 
 Tests run offline with LuaJIT and stub the game API:
 

@@ -411,34 +411,128 @@ test("res file points at the install script", function()
 	eq(d.data.doReplaceFn, "CAT_Install")
 end)
 
--- a minimal reader for strings.json (a two-level object of strings, no
--- escaped quotes in values): { lang = { key = value } }; empty values read
--- as "" so the checks below can reject them
-local function readStrings()
-	local f = assert(io.open(root .. "/strings.json"))
+-- a small JSON decoder (objects, arrays, strings with escapes, numbers,
+-- true/false/null): enough for strings.json and _metadata/modinfo.json,
+-- whose keys contain spaces and escaped quotes
+local function decodeJson(src)
+	local pos = 1
+	local function ws() pos = src:find("[^ \t\r\n]", pos) or #src + 1 end
+	local value
+	local function str()
+		local out, i = {}, pos + 1
+		while true do
+			local c = src:sub(i, i)
+			assert(c ~= "", "unterminated string")
+			if c == '"' then pos = i + 1; return table.concat(out) end
+			if c == "\\" then
+				local e = src:sub(i + 1, i + 1)
+				local map = { n = "\n", t = "\t", r = "\r", b = "\b", f = "\f", ['"'] = '"', ["\\"] = "\\", ["/"] = "/" }
+				if e == "u" then
+					local cp = tonumber(src:sub(i + 2, i + 5), 16)
+					assert(cp and cp < 0x80, "only ASCII \\u escapes are expected")
+					out[#out + 1] = string.char(cp); i = i + 6
+				else
+					out[#out + 1] = assert(map[e], "bad escape"); i = i + 2
+				end
+			else
+				out[#out + 1] = c; i = i + 1
+			end
+		end
+	end
+	function value()
+		ws()
+		local c = src:sub(pos, pos)
+		if c == "{" then
+			local t = {}
+			pos = pos + 1; ws()
+			if src:sub(pos, pos) == "}" then pos = pos + 1; return t end
+			while true do
+				ws(); assert(src:sub(pos, pos) == '"', "key expected at " .. pos)
+				local k = str(); ws()
+				assert(src:sub(pos, pos) == ":", ": expected at " .. pos); pos = pos + 1
+				assert(t[k] == nil, "duplicate key " .. k)
+				t[k] = value(); ws()
+				local d = src:sub(pos, pos); pos = pos + 1
+				if d == "}" then return t end
+				assert(d == ",", ", or } expected at " .. pos)
+			end
+		elseif c == "[" then
+			local t = {}
+			pos = pos + 1; ws()
+			if src:sub(pos, pos) == "]" then pos = pos + 1; return t end
+			while true do
+				t[#t + 1] = value(); ws()
+				local d = src:sub(pos, pos); pos = pos + 1
+				if d == "]" then return t end
+				assert(d == ",", ", or ] expected at " .. pos)
+			end
+		elseif c == '"' then
+			return str()
+		end
+		for lit, v in pairs({ ["true"] = true, ["false"] = false, ["null"] = false }) do
+			if src:sub(pos, pos + #lit - 1) == lit then pos = pos + #lit; return v end
+		end
+		local num = src:match("^-?%d+%.?%d*[eE]?[-+]?%d*", pos)
+		assert(num and num ~= "", "bad value at " .. pos)
+		pos = pos + #num
+		return tonumber(num)
+	end
+	local v = value(); ws()
+	assert(pos > #src, "trailing data at " .. pos)
+	return v
+end
+
+local function readJson(rel)
+	local f = assert(io.open(root .. "/" .. rel))
 	local src = f:read("*a")
 	f:close()
-	local langs = {}
-	for lang, body in src:gmatch('"([%w_]+)"%s*:%s*(%b{})') do
-		local keys = {}
-		for k, v in body:gmatch('"([%w_]+)"%s*:%s*"([^"]*)"') do keys[k] = v end
-		langs[lang] = keys
-	end
-	return langs
+	return decodeJson(src)
 end
 
 local GAME_LANGS = { "en", "ja", "de", "es", "fr", "it", "ko", "nl", "pl", "pt_BR", "ru", "zh_CN", "zh_TW" }
 
--- every game language (base/strings/<lang>) gets the label; the game reads
--- no other key from strings.json (name and description come from mod.io)
-test("strings.json: the label in every game language, nothing else", function()
-	local langs = readStrings()
+test("decodeJson: escapes, nesting, rejects broken input", function()
+	local v = decodeJson('{"a \\"b\\"": ["x", 1, true], "c": {"d": "\\u0041\\n"}}')
+	eq(v['a "b"'][1], "x"); eq(v['a "b"'][2], 1); eq(v['a "b"'][3], true)
+	eq(v.c.d, "A\n")
+	eq((pcall(decodeJson, '{"a": "b"')), false)
+	eq((pcall(decodeJson, '{"a": "b",}')), false)
+	eq((pcall(decodeJson, '{"a": 1, "a": 2}')), false)
+end)
+
+-- The game lists a local mod by _metadata/modinfo.json (as its own mods in
+-- mods/release/*/_metadata do); without it the list shows the folder name
+-- in snake_case. The texts are plain English, so they read well even where
+-- no translation applies.
+test("_metadata/modinfo.json: readable name, summary, author, tag", function()
+	local info = readJson("_metadata/modinfo.json")
+	assert(type(info.name) == "string" and info.name:find(" ") and not info.name:find("_"), "readable name")
+	assert(type(info.summary) == "string" and #info.summary > 0, "summary")
+	assert(type(info.description) == "string" and #info.description > #info.summary, "description")
+	eq(info.authors[1].name, "hummer")
+	eq(info.authors[1].role, "CREATOR")
+	-- a tag the game knows (its mod-tags list), so filters and translation work
+	eq(info.tags[1], "Script Mod")
+end)
+
+-- strings.json: the tooltip label in every game language (base/strings/<lang>),
+-- and in every language but English the modinfo texts translated, keyed by
+-- the English text as the game's own modinfo keys are looked up
+test("strings.json: label and modinfo texts in every game language", function()
+	local langs = readJson("strings.json")
+	local info = readJson("_metadata/modinfo.json")
+	local allowed = { cat_altitude = true, [info.name] = true, [info.summary] = true, [info.description] = true }
 	local known = {}
 	for _, lang in ipairs(GAME_LANGS) do
 		known[lang] = true
 		local t = assert(langs[lang], "missing language " .. lang)
-		assert(t.cat_altitude and t.cat_altitude ~= "", lang .. " lacks cat_altitude")
-		for k in pairs(t) do eq(k, "cat_altitude", lang .. " unused key") end
+		assert(type(t.cat_altitude) == "string" and t.cat_altitude ~= "", lang .. " lacks cat_altitude")
+		for k in pairs(t) do assert(allowed[k], lang .. " has an unused key: " .. k:sub(1, 40)) end
+		if lang ~= "en" then
+			for _, k in ipairs({ info.name, info.summary, info.description }) do
+				assert(type(t[k]) == "string" and t[k] ~= "" and t[k] ~= k, lang .. " lacks " .. k:sub(1, 40))
+			end
+		end
 	end
 	for lang in pairs(langs) do assert(known[lang], "unknown language " .. lang) end
 end)
@@ -457,6 +551,8 @@ test("mod.io description: every language names the official key", function()
 		pt_BR = "Fixação na Superfície", ru = "Привязка к поверхности",
 		zh_CN = "表面吸附", zh_TW = "貼齊表面",
 	}
+	local info = readJson("_metadata/modinfo.json")
+	assert(src:find(info.description, 1, true), "en text differs from modinfo.json")
 	for _, lang in ipairs(GAME_LANGS) do
 		local section = src:match("\n## " .. lang .. "\n(.-)\n## ") or src:match("\n## " .. lang .. "\n(.*)$")
 		assert(section, "no section for " .. lang)

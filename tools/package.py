@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Builds the release zip for mod.io: dist/<folder>.zip.
 
-Only what the game loads (mod.json, strings.json, content/) and the
-licence go in. The repository's .git, tests/, tools/ and README stay out:
-players don't need them, and the git history would otherwise ship with
-every download.
+Only what the game loads (mod.json, strings.json, content/, and _metadata/
+with the mod list name) and the licence go in. The repository's .git,
+tests/, tools/ and README stay out: players don't need them, and the git
+history would otherwise ship with every download.
 
 Before packing it runs the tests, checks that the JSON files parse and
 warns about uncommitted changes, so a zip is never built from a broken or
@@ -21,7 +21,7 @@ import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INCLUDE_FILES = ["mod.json", "strings.json", "LICENSE"]
-INCLUDE_DIRS = ["content"]
+INCLUDE_DIRS = ["content", "_metadata"]
 SKIP_SUFFIXES = ("~", ".bak", ".orig", ".swp", ".tmp")
 
 
@@ -30,7 +30,7 @@ def skipped(name):
 
 
 def preflight():
-    for name in ("mod.json", "strings.json"):
+    for name in ("mod.json", "strings.json", "_metadata/modinfo.json"):
         try:
             with open(os.path.join(ROOT, name), encoding="utf-8") as f:
                 json.load(f)

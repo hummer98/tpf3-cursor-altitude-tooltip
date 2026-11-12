@@ -1,0 +1,15 @@
+{
+    "authors": [
+        {
+            "name": "hummer",
+            "role": "CREATOR"
+        }
+    ],
+    "description": "While no tool or layer is active (station, vehicle, line, industry and town windows bring their own cursor and are excluded), holding the \"Surface Snapping\" key (Alt by default) shows the altitude of the terrain under the mouse cursor in the cursor tooltip, instead of the usual name tooltip. Over buildings and water the ground below is measured.",
+    "name": "Cursor Altitude Tooltip",
+    "summary": "Hold the Surface Snapping key (Alt) to see the terrain altitude under the cursor.",
+    "tags": [
+        "Script Mod"
+    ],
+    "url": "https://github.com/hummer98/tpf3-cursor-altitude-tooltip"
+}
