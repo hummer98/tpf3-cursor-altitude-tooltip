@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Builds the release zip for mod.io: dist/<folder>.zip.
 
-Only what the game loads (mod.json, strings.json, content/, and _metadata/
-with the mod list name) and the licence go in. The repository's .git,
+Only what the game loads goes in (mod.json, strings.json, content/, and
+_metadata/ with the mod list name and cover). The repository's .git,
 tests/, tools/ and README stay out: players don't need them, and the git
 history would otherwise ship with every download.
 
@@ -24,7 +24,10 @@ import sys
 import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-INCLUDE_FILES = ["mod.json", "strings.json", "LICENSE"]
+# no LICENSE here: the game's mod validation rejects files without an
+# allowed extension ("File extension is not allowed"); the licence is stated
+# in the repository and on the mod page
+INCLUDE_FILES = ["mod.json", "strings.json"]
 INCLUDE_DIRS = ["content", "_metadata"]
 SKIP_SUFFIXES = ("~", ".bak", ".orig", ".swp", ".tmp")
 
