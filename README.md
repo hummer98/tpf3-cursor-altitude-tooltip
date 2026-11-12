@@ -12,7 +12,7 @@ of the usual name tooltip. Release the key and the usual tooltip comes back.
 - Follows the game's unit setting (metres / feet).
 - Follows your key binding: whatever key you bind to "Surface Snapping" in
   the game's key bindings is the key that shows the altitude.
-- Translated into all 13 languages of the game.
+- The label is translated into all 13 languages of the game.
 
 ## Where it shows, and where it doesn't
 
@@ -33,9 +33,15 @@ of the usual name tooltip. Release the key and the usual tooltip comes back.
 
 ## Install
 
-- mod.io: _link to be added_
-- Manually: put the folder `hummer_cursor_altitude_tooltip_1` into
-  `<Steam userdata>/<id>/3493540/local/mods/` and enable the mod in the game.
+- mod.io: _link to be added_ (subscribe in the game's mod manager).
+- Manually: the game loads a local mod only from a folder named exactly
+  `hummer_cursor_altitude_tooltip_1` inside
+  `<Steam>/userdata/<your id>/3493540/local/mods/`.
+  - From the release zip: create that folder and extract the zip **into**
+    it (the zip has no top folder of its own).
+  - From GitHub: `git clone <repository URL> hummer_cursor_altitude_tooltip_1`
+    inside `local/mods/` (a different folder name will not load).
+  - Then enable the mod in the game.
 
 ## Development
 
@@ -53,8 +59,10 @@ Tests run offline with LuaJIT and stub the game API:
 luajit tests/run.lua
 ```
 
-`python3 tools/package.py` builds `dist/hummer_cursor_altitude_tooltip_1.zip`
-with only the files the game needs (no `.git`, tests or tools).
+`python3 tools/package.py` runs the tests and builds
+`dist/hummer_cursor_altitude_tooltip_1.zip` with only the files the game
+needs (no `.git`, tests or tools). The mod.io page text for every language is
+in [docs/modio_description.md](docs/modio_description.md).
 
 ## License
 
@@ -75,7 +83,7 @@ with only the files the game needs (no `.git`, tests or tools).
 - マウスカーソル下の地形の標高を小数1桁で表示します。
 - ゲームの単位設定（メートル／フィート）に従います。
 - キー割り当てに従います。ゲームのキー設定で「地表スナップ」に割り当てたキーで表示されます。
-- ゲームの全13言語に対応しています。
+- 表示ラベルはゲームの全13言語に対応しています。
 
 ### 表示される場面・されない場面
 
@@ -90,9 +98,12 @@ with only the files the game needs (no `.git`, tests or tools).
 
 ### 導入
 
-- mod.io：_リンクは公開後に追記_
-- 手動：フォルダ `hummer_cursor_altitude_tooltip_1` を
-  `<Steam の userdata>/<ID>/3493540/local/mods/` に置き、ゲーム内で有効にします。
+- mod.io：_リンクは公開後に追記_（ゲーム内の Mod 管理から購読）
+- 手動：ゲームは `<Steam>/userdata/<ID>/3493540/local/mods/` の中の、
+  名前がちょうど `hummer_cursor_altitude_tooltip_1` のフォルダからだけ読み込みます。
+  - リリースの zip から：そのフォルダを作り、その**中に** zip を展開します（zip には外側のフォルダがありません）。
+  - GitHub から：`local/mods/` の中で `git clone <リポジトリURL> hummer_cursor_altitude_tooltip_1` とします（別のフォルダ名では読み込まれません）。
+  - そのあとゲーム内で有効にします。
 
 ### ライセンス
 
