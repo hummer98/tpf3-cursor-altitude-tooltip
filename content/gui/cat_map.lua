@@ -24,8 +24,8 @@ local map = {}
 
 map.TEXT_CLASS = "font-scale-tooltip, default-tooltip-configuration"
 
--- one line each, the first time, so a tooltip that never appears in game can
--- be told apart: wrap not installed / tooltip not rendered / key never seen
+-- failures only, one line each the first time (a working tooltip logs
+-- nothing; a failed install is logged by cat_install.script.lua)
 local reported = {}
 local function reportOnce(key, msg)
 	if reported[key] then return end
@@ -65,14 +65,23 @@ local function altitudeFormatter()
 	return nil
 end
 
+-- true when the player chose imperial units (feet), for the fallback text
+-- (the same setting the base terrain layer reads, layer_terrain.tl:68)
+local function isImperial()
+	local ok, v = pcall(function()
+		return api.util.getAppConfig().distanceSpeedUnit == api.type["enum"].DistanceSpeedUnit.Imperial
+	end)
+	return ok and v == true
+end
+
 -- the text for this step, or nil (usual tooltip)
 function map.stepText()
 	local held = isHeld()
 	if not held then return nil end
-	reportOnce("held", core.INPUT_ACTION .. " seen held in the map view")
 	local has, pos = terrainPos()
+	local formatFn = altitudeFormatter()
 	return core.tooltipText(held, has, pos,
-		core.label(_, "cat_altitude", "Altitude"), altitudeFormatter())
+		core.label(_, "cat_altitude", "Altitude"), formatFn, formatFn == nil and isImperial())
 end
 
 -- Builds the tooltip recipe for one set of GUI modules. A recipe belongs to
@@ -86,7 +95,6 @@ function map.makeRecipe(mods)
 	if cached then return cached end
 	local recipe = react.RegisterRecipe("CursorAltitudeTooltip", function(param)
 		react.setMouseTransparent(true)
-		reportOnce("render", "altitude tooltip in place")
 		local state = mods.engine_react_util.useStepState(map.stepText)
 		local text = state:old()
 		local child
@@ -161,7 +169,6 @@ function map.install(ug)
 	}
 	wrapped = map.wrapCombinedFn(current, sru, mods)
 	sru.makeDefaultSelectorCombinedFn = wrapped
-	reportOnce("install", "plain map view wrapped")
 end
 
 return map

@@ -43,6 +43,17 @@ test("formatAltitude falls back when the formatter throws or returns junk", func
 	eq(core.formatAltitude("A", 5, nil), "A: 5.0 m")
 end)
 
+test("formatAltitude fallback in feet when imperial", function()
+	eq(core.formatAltitude("A", 100, nil, true), "A: 328.1 ft")
+	eq(core.formatAltitude("A", -10, nil, true), "A: -32.8 ft")
+	eq(core.formatAltitude("A", -0.01, nil, true), "A: 0.0 ft")
+	eq(core.formatAltitude("A", 100, nil, false), "A: 100.0 m")
+	eq(core.formatAltitude("A", 100, nil, nil), "A: 100.0 m")
+	-- the game's formatter wins over our own unit choice
+	eq(core.formatAltitude("A", 100, fmt, true), "A: 100.0 m")
+	eq(core.tooltipText(true, true, { z = 100 }, "A", nil, true), "A: 328.1 ft")
+end)
+
 test("formatAltitude prints tiny negatives as 0, keeps real negatives", function()
 	eq(core.formatAltitude("A", -0.01, nil), "A: 0.0 m")
 	eq(core.formatAltitude("A", -12.34, nil), "A: -12.3 m")
@@ -261,6 +272,61 @@ test("formatAltitude missing from api.util: plain metres", function()
 	map.install(m.ug)
 	held, api.util = true, nil
 	eq(renderTooltip(m).children[1].text, "標高: 50.0 m")
+end)
+
+-- the fallback must follow the metric/imperial setting like the rest of the UI
+local function imperialApi(unit)
+	api.util = { getAppConfig = function() return { distanceSpeedUnit = unit } end }
+	api.type = { enum = { DistanceSpeedUnit = { Metric = "M", Imperial = "I" } } }
+end
+
+test("formatAltitude missing, imperial chosen: feet", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	held = true
+	imperialApi("I")
+	eq(renderTooltip(m).children[1].text, "標高: 164.0 ft")
+end)
+
+test("formatAltitude missing, metric chosen: metres", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	held = true
+	imperialApi("M")
+	eq(renderTooltip(m).children[1].text, "標高: 50.0 m")
+end)
+
+test("formatAltitude missing, unit setting unreadable: metres", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	held = true
+	api.util = { getAppConfig = function() error("restricted") end }
+	eq(renderTooltip(m).children[1].text, "標高: 50.0 m")
+end)
+
+test("game formatter present: used as is, unit setting not needed", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	held = true
+	imperialApi("I")
+	api.util.formatAltitude = function(z) return string.format("%.0f ft (game)", z * 3.28084) end
+	eq(renderTooltip(m).children[1].text, "標高: 164 ft (game)")
+end)
+
+test("a working install, render and held key log nothing", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	local before = #logs
+	map.install(m.ug)
+	held = true
+	renderTooltip(m)
+	held = false
+	renderTooltip(m)
+	eq(#logs, before, "no log lines")
 end)
 
 test("install twice on the same modules wraps once", function()

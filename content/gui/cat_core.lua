@@ -12,15 +12,23 @@ local function isNumber(v)
 	return type(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge
 end
 
--- Same rules as the build-cursor altitude mod (construction_height_tooltip)
--- so both read alike: the game's formatter when it works, else plain metres.
-function M.formatAltitude(label, z, formatFn)
+M.FEET_PER_METRE = 1 / 0.3048
+
+-- The game's formatter when it works (it follows the metric/imperial
+-- setting); else our own text, in feet when `imperial` says the player chose
+-- imperial units, so the fallback never disagrees with the rest of the UI.
+function M.formatAltitude(label, z, formatFn, imperial)
 	if math.abs(z) < 0.05 then z = 0 end -- avoid "-0.0 m"
 	if type(formatFn) == "function" then
 		local ok, s = pcall(formatFn, z, 1)
 		if ok and type(s) == "string" and s ~= "" then
 			return string.format("%s: %s", label, s)
 		end
+	end
+	if imperial == true then
+		local ft = z * M.FEET_PER_METRE
+		if math.abs(ft) < 0.05 then ft = 0 end
+		return string.format("%s: %.1f ft", label, ft)
 	end
 	return string.format("%s: %.1f m", label, z)
 end
@@ -41,12 +49,12 @@ end
 -- Returning a string (not the number) keeps the step state from changing
 -- while the cursor moves within the same 0.1 m, so the tooltip does not
 -- re-render on every tiny move.
-function M.tooltipText(held, hasPos, pos, label, formatFn)
+function M.tooltipText(held, hasPos, pos, label, formatFn, imperial)
 	if not held or not hasPos then return nil end
 	if type(pos) ~= "table" and type(pos) ~= "userdata" then return nil end
 	local z = pos.z
 	if not isNumber(z) then return nil end
-	return M.formatAltitude(label, z, formatFn)
+	return M.formatAltitude(label, z, formatFn, imperial)
 end
 
 return M
