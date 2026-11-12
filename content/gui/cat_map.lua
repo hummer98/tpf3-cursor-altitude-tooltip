@@ -18,7 +18,7 @@
 -- The replacement tooltip is the base TerrainTooltip "Height" idea (layer
 -- terrain prints api.gui.mouse.getTerrainPosition().z), shown only while the
 -- modifier is held, and falls back to the base entity tooltip otherwise.
-local core = require "cursor_altitude_tooltip::/gui/cat_core.lua"
+local core = require "hummer_cursor_altitude_tooltip::/gui/cat_core.lua"
 
 local map = {}
 

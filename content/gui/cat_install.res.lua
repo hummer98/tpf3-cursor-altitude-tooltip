@@ -4,7 +4,7 @@ function data()
 	return {
 		type = "react-replacement-config",
 		data = {
-			filePath = "cursor_altitude_tooltip::/gui/cat_install.script",
+			filePath = "hummer_cursor_altitude_tooltip::/gui/cat_install.script",
 			doReplaceFn = "CAT_Install",
 		},
 	}

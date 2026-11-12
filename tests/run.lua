@@ -7,7 +7,7 @@ local root = (arg and arg[0] or "tests/run.lua"):match("^(.*)/tests/[^/]*$") or 
 
 local loaders = package.loaders or package.searchers
 table.insert(loaders, 2, function(name)
-	local rel = name:match("^cursor_altitude_tooltip::/(.*)$")
+	local rel = name:match("^hummer_cursor_altitude_tooltip::/(.*)$")
 	if rel then return assert(loadfile(root .. "/content/" .. rel)) end
 end)
 
@@ -29,7 +29,7 @@ end
 ------------------------------------------------------------------------
 -- cat_core (pure)
 ------------------------------------------------------------------------
-local core = require "cursor_altitude_tooltip::/gui/cat_core.lua"
+local core = require "hummer_cursor_altitude_tooltip::/gui/cat_core.lua"
 
 local function fmt(z, d) return string.format("%." .. d .. "f m", z) end
 
@@ -153,8 +153,8 @@ local function newMods()
 end
 
 local function freshMap()
-	package.loaded["cursor_altitude_tooltip::/gui/cat_map.lua"] = nil
-	return require "cursor_altitude_tooltip::/gui/cat_map.lua"
+	package.loaded["hummer_cursor_altitude_tooltip::/gui/cat_map.lua"] = nil
+	return require "hummer_cursor_altitude_tooltip::/gui/cat_map.lua"
 end
 
 -- render the plain map view and then its tooltip recipe
@@ -314,7 +314,7 @@ end)
 
 test("install script: a failing install logs instead of throwing", function()
 	resetApi()
-	package.loaded["cursor_altitude_tooltip::/gui/cat_map.lua"] = nil
+	package.loaded["hummer_cursor_altitude_tooltip::/gui/cat_map.lua"] = nil
 	local m = newMods()
 	m.sru.makeDefaultSelectorTooltips = nil
 	ug_require = m.ug
@@ -329,8 +329,25 @@ test("res file points at the install script", function()
 	dofile(root .. "/content/gui/cat_install.res.lua")
 	local d = data()
 	eq(d.type, "react-replacement-config")
-	eq(d.data.filePath, "cursor_altitude_tooltip::/gui/cat_install.script")
+	eq(d.data.filePath, "hummer_cursor_altitude_tooltip::/gui/cat_install.script")
 	eq(d.data.doReplaceFn, "CAT_Install")
+end)
+
+-- the game resolves "<modId>::/..." paths by mod.json's modId and loads the
+-- mod from the folder "<modId>_<major>", so a rename must change all three
+test("modId, folder name and every require prefix agree", function()
+	local f = assert(io.open(root .. "/mod.json"))
+	local modId = f:read("*a"):match('"modId"%s*:%s*"([^"]+)"')
+	f:close()
+	eq(modId, "hummer_cursor_altitude_tooltip")
+	local folder = (root == "." and io.popen("pwd"):read("*l") or root):match("([^/]+)/?$")
+	if folder:match("_%d+$") then eq(folder:gsub("_%d+$", ""), modId, "folder name") end
+	for _, name in ipairs({ "cat_map.lua", "cat_install.res.lua", "cat_install.script.lua" }) do
+		local h = assert(io.open(root .. "/content/gui/" .. name))
+		local src = h:read("*a")
+		h:close()
+		for prefix in src:gmatch('"([%w_]+)::/') do eq(prefix, modId, name) end
+	end
 end)
 
 print(string.format("\n%d passed, %d failed", passes, failures))
