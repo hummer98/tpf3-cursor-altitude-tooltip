@@ -399,6 +399,39 @@ test("res file points at the install script", function()
 	eq(d.data.doReplaceFn, "CAT_Install")
 end)
 
+-- every game language (base/strings/<lang>) gets every key, and the key the
+-- player must hold is named as that language's key bindings name it
+-- (base.mo "Surface Snapping"), or players can't find it in the settings
+test("strings.json: all game languages, all keys, official key name", function()
+	local f = assert(io.open(root .. "/strings.json"))
+	local src = f:read("*a")
+	f:close()
+	local official = {
+		en = "Surface Snapping", ja = "地表スナップ", de = "Oberflächen-Snapping",
+		es = "Ajuste a la superficie", fr = "Accrochage aux surfaces",
+		it = "Agganciamento alla superficie", ko = "표면 스내핑",
+		nl = "Vastklikken op oppervlak", pl = "Przyciąganie do powierzchni",
+		pt_BR = "Fixação na Superfície", ru = "Привязка к поверхности",
+		zh_CN = "表面吸附", zh_TW = "貼齊表面",
+	}
+	-- a flat two-level JSON object of strings: enough to read it here
+	local langs = {}
+	for lang, body in src:gmatch('"([%w_]+)"%s*:%s*(%b{})') do
+		local keys = {}
+		for k, v in body:gmatch('"([%w_]+)"%s*:%s*"(.-[^\\])"') do keys[k] = v end
+		langs[lang] = keys
+	end
+	for lang, keyName in pairs(official) do
+		local t = langs[lang]
+		assert(t, "missing language " .. lang)
+		for _, k in ipairs({ "mod_name", "mod_desc", "cat_altitude" }) do
+			assert(t[k] and t[k] ~= "", lang .. " lacks " .. k)
+		end
+		assert(t.mod_desc:find(keyName, 1, true), lang .. " mod_desc doesn't name " .. keyName)
+	end
+	for lang in pairs(langs) do assert(official[lang], "unknown language " .. lang) end
+end)
+
 -- the game resolves "<modId>::/..." paths by mod.json's modId and loads the
 -- mod from the folder "<modId>_<major>", so a rename must change all three
 test("modId, folder name and every require prefix agree", function()
