@@ -1,0 +1,83 @@
+# mod.io page text
+
+Name and description per game language, for the mod.io page (the game
+takes a mod's name and description from mod.io, not from strings.json).
+Window and setting names follow the game's own translations (base.mo).
+
+## en
+
+**Cursor Altitude Tooltip**
+
+While no tool or layer is active (station, vehicle, line, industry and town windows bring their own cursor and are excluded), holding the "Surface Snapping" key (Alt by default) shows the altitude of the terrain under the mouse cursor in the cursor tooltip, instead of the usual name tooltip. Over buildings and water the ground below is measured.
+
+## ja
+
+**カーソル位置の標高表示**
+
+ツールやレイヤーを使っていない通常の地図画面で（駅・車両・路線・産業・町のウィンドウを開いている間は対象外）「地表スナップ」のキー（初期設定は Alt）を押している間、マウスのヒントに通常の名前表示の代わりにカーソル位置の地形の標高を表示します。建物や水面の上では、その下の地面の高さになります。
+
+## de
+
+**Höhe am Mauszeiger**
+
+Solange kein Werkzeug und keine Layers aktiv sind (Fenster von Stationen, Fahrzeugen, Linien, Industrien und Städten bringen ihren eigenen Mauszeiger mit und sind ausgenommen), zeigt das Halten der Taste „Oberflächen-Snapping“ (standardmäßig Alt) im Tooltip am Mauszeiger die Höhe des Geländes unter dem Mauszeiger an, statt des üblichen Namens. Über Gebäuden und Wasser wird der Boden darunter gemessen.
+
+## es
+
+**Altitud bajo el cursor**
+
+Mientras no haya ninguna herramienta ni capa activa (las ventanas de estaciones, vehículos, líneas, industrias y localidades tienen su propio cursor y quedan excluidas), al mantener pulsada la tecla «Ajuste a la superficie» (Alt por defecto) la información emergente del cursor muestra la altitud del terreno bajo el ratón en lugar del nombre habitual. Sobre edificios y agua se mide el suelo que hay debajo.
+
+## fr
+
+**Altitude sous le curseur**
+
+Tant qu'aucun outil ni aucune vue n'est actif (les fenêtres des gares, véhicules, lignes, industries et villes ont leur propre curseur et sont exclues), maintenir la touche « Accrochage aux surfaces » (Alt par défaut) affiche dans l'infobulle du curseur l'altitude du terrain sous la souris, à la place du nom habituel. Au-dessus des bâtiments et de l'eau, c'est le sol en dessous qui est mesuré.
+
+## it
+
+**Altitudine sotto il cursore**
+
+Quando nessuno strumento o strato è attivo (le finestre di stazioni, veicoli, linee, industrie e cittadine hanno un proprio cursore e sono escluse), tenendo premuto il tasto "Agganciamento alla superficie" (Alt per impostazione predefinita) il tooltip del cursore mostra l'altitudine del terreno sotto il mouse invece del solito nome. Sopra edifici e acqua viene misurato il terreno sottostante.
+
+## ko
+
+**커서 위치 고도 표시**
+
+도구나 레이어를 사용하지 않는 일반 지도 화면에서(정류장·운송 수단·노선·산업·마을 창이 열려 있는 동안은 제외) '표면 스내핑' 키(기본값 Alt)를 누르고 있으면, 커서 툴팁에 평소의 이름 대신 마우스 아래 지형의 고도를 표시합니다. 건물이나 수면 위에서는 그 아래 지면의 높이를 표시합니다.
+
+## nl
+
+**Hoogte onder de cursor**
+
+Zolang er geen gereedschap of laag actief is (vensters van stations, voertuigen, lijnen, industriebedrijven en steden hebben hun eigen cursor en vallen erbuiten), toont het ingedrukt houden van de toets 'Vastklikken op oppervlak' (standaard Alt) in de cursortooltip de hoogte van het terrein onder de muis, in plaats van de gebruikelijke naam. Boven gebouwen en water wordt de grond eronder gemeten.
+
+## pl
+
+**Wysokość pod kursorem**
+
+Gdy nie jest aktywne żadne narzędzie ani warstwa (okna dworców, pojazdów, linii, zakładów przemysłowych i miast mają własny kursor i są wyłączone), przytrzymanie klawisza „Przyciąganie do powierzchni” (domyślnie Alt) pokazuje w dymku kursora wysokość terenu pod myszą zamiast zwykłej nazwy. Nad budynkami i wodą mierzony jest grunt pod nimi.
+
+## pt_BR
+
+**Altitude sob o cursor**
+
+Enquanto nenhuma ferramenta ou camada estiver ativa (as janelas de estações, veículos, linhas, indústrias e municípios têm seu próprio cursor e ficam de fora), segurar a tecla "Fixação na Superfície" (Alt por padrão) mostra na dica do cursor a altitude do terreno sob o mouse, no lugar do nome habitual. Sobre edifícios e água, é medido o solo abaixo.
+
+## ru
+
+**Высота под курсором**
+
+Пока не активны никакие инструменты и слои данных (окна остановок, транспорта, маршрутов, предприятий и городов имеют собственный курсор и не затрагиваются), удержание клавиши «Привязка к поверхности» (по умолчанию Alt) показывает во всплывающей подсказке курсора высоту местности под мышью вместо обычного названия. Над зданиями и водой измеряется земля под ними.
+
+## zh_CN
+
+**光标处海拔显示**
+
+在未使用任何工具或层的普通地图画面中（打开车站、载具、线路、产业和城镇窗口时不适用），按住“表面吸附”键（默认 Alt）时，光标提示会显示鼠标下方地形的海拔，取代通常的名称显示。在建筑物或水面上时，显示其下方地面的高度。
+
+## zh_TW
+
+**游標處海拔顯示**
+
+在未使用任何工具或圖層的一般地圖畫面中（開啟車站、車輛、路線、產業和城鎮視窗時不適用），按住「貼齊表面」鍵（預設 Alt）時，游標提示會顯示滑鼠下方地形的海拔，取代平常的名稱顯示。在建築物或水面上時，顯示其下方地面的高度。

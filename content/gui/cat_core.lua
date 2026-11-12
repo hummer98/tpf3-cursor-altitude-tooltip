@@ -26,9 +26,8 @@ function M.formatAltitude(label, z, formatFn, imperial)
 		end
 	end
 	if imperial == true then
-		local ft = z * M.FEET_PER_METRE
-		if math.abs(ft) < 0.05 then ft = 0 end
-		return string.format("%s: %.1f ft", label, ft)
+		-- z is already 0 or at least 0.05 m (0.16 ft), so no "-0.0 ft" either
+		return string.format("%s: %.1f ft", label, z * M.FEET_PER_METRE)
 	end
 	return string.format("%s: %.1f m", label, z)
 end

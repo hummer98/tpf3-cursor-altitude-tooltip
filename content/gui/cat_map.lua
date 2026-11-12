@@ -79,9 +79,10 @@ function map.stepText()
 	local held = isHeld()
 	if not held then return nil end
 	local has, pos = terrainPos()
-	local formatFn = altitudeFormatter()
+	-- the unit is read every time: the fallback is also taken when the game's
+	-- formatter exists but throws or returns junk
 	return core.tooltipText(held, has, pos,
-		core.label(_, "cat_altitude", "Altitude"), formatFn, formatFn == nil and isImperial())
+		core.label(_, "cat_altitude", "Altitude"), altitudeFormatter(), isImperial())
 end
 
 -- Builds the tooltip recipe for one set of GUI modules. A recipe belongs to

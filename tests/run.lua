@@ -307,6 +307,18 @@ test("formatAltitude missing, unit setting unreadable: metres", function()
 	eq(renderTooltip(m).children[1].text, "標高: 50.0 m")
 end)
 
+test("game formatter present but throwing, imperial chosen: feet", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	held = true
+	imperialApi("I")
+	api.util.formatAltitude = function() error("restricted") end
+	eq(renderTooltip(m).children[1].text, "標高: 164.0 ft")
+	api.util.formatAltitude = function() return 42 end
+	eq(renderTooltip(m).children[1].text, "標高: 164.0 ft")
+end)
+
 test("game formatter present: used as is, unit setting not needed", function()
 	resetApi()
 	local map, m = freshMap(), newMods()
@@ -399,11 +411,42 @@ test("res file points at the install script", function()
 	eq(d.data.doReplaceFn, "CAT_Install")
 end)
 
--- every game language (base/strings/<lang>) gets every key, and the key the
--- player must hold is named as that language's key bindings name it
--- (base.mo "Surface Snapping"), or players can't find it in the settings
-test("strings.json: all game languages, all keys, official key name", function()
+-- a minimal reader for strings.json (a two-level object of strings, no
+-- escaped quotes in values): { lang = { key = value } }; empty values read
+-- as "" so the checks below can reject them
+local function readStrings()
 	local f = assert(io.open(root .. "/strings.json"))
+	local src = f:read("*a")
+	f:close()
+	local langs = {}
+	for lang, body in src:gmatch('"([%w_]+)"%s*:%s*(%b{})') do
+		local keys = {}
+		for k, v in body:gmatch('"([%w_]+)"%s*:%s*"([^"]*)"') do keys[k] = v end
+		langs[lang] = keys
+	end
+	return langs
+end
+
+local GAME_LANGS = { "en", "ja", "de", "es", "fr", "it", "ko", "nl", "pl", "pt_BR", "ru", "zh_CN", "zh_TW" }
+
+-- every game language (base/strings/<lang>) gets the label; the game reads
+-- no other key from strings.json (name and description come from mod.io)
+test("strings.json: the label in every game language, nothing else", function()
+	local langs = readStrings()
+	local known = {}
+	for _, lang in ipairs(GAME_LANGS) do
+		known[lang] = true
+		local t = assert(langs[lang], "missing language " .. lang)
+		assert(t.cat_altitude and t.cat_altitude ~= "", lang .. " lacks cat_altitude")
+		for k in pairs(t) do eq(k, "cat_altitude", lang .. " unused key") end
+	end
+	for lang in pairs(langs) do assert(known[lang], "unknown language " .. lang) end
+end)
+
+-- the mod.io text names the key to hold as each language's key bindings
+-- name it (base.mo "Surface Snapping"), or players can't find it
+test("mod.io description: every language names the official key", function()
+	local f = assert(io.open(root .. "/docs/modio_description.md"))
 	local src = f:read("*a")
 	f:close()
 	local official = {
@@ -414,22 +457,11 @@ test("strings.json: all game languages, all keys, official key name", function()
 		pt_BR = "Fixação na Superfície", ru = "Привязка к поверхности",
 		zh_CN = "表面吸附", zh_TW = "貼齊表面",
 	}
-	-- a flat two-level JSON object of strings: enough to read it here
-	local langs = {}
-	for lang, body in src:gmatch('"([%w_]+)"%s*:%s*(%b{})') do
-		local keys = {}
-		for k, v in body:gmatch('"([%w_]+)"%s*:%s*"(.-[^\\])"') do keys[k] = v end
-		langs[lang] = keys
+	for _, lang in ipairs(GAME_LANGS) do
+		local section = src:match("\n## " .. lang .. "\n(.-)\n## ") or src:match("\n## " .. lang .. "\n(.*)$")
+		assert(section, "no section for " .. lang)
+		assert(section:find(official[lang], 1, true), lang .. " doesn't name " .. official[lang])
 	end
-	for lang, keyName in pairs(official) do
-		local t = langs[lang]
-		assert(t, "missing language " .. lang)
-		for _, k in ipairs({ "mod_name", "mod_desc", "cat_altitude" }) do
-			assert(t[k] and t[k] ~= "", lang .. " lacks " .. k)
-		end
-		assert(t.mod_desc:find(keyName, 1, true), lang .. " mod_desc doesn't name " .. keyName)
-	end
-	for lang in pairs(langs) do assert(official[lang], "unknown language " .. lang) end
 end)
 
 -- the game resolves "<modId>::/..." paths by mod.json's modId and loads the
