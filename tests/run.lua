@@ -424,7 +424,8 @@ local function decodeJson(src)
 			local c = src:sub(i, i)
 			assert(c ~= "", "unterminated string")
 			if c == '"' then pos = i + 1; return table.concat(out) end
-			if c == "\\" then
+			assert(c:byte() >= 0x20, "control character in string")
+		if c == "\\" then
 				local e = src:sub(i + 1, i + 1)
 				local map = { n = "\n", t = "\t", r = "\r", b = "\b", f = "\f", ['"'] = '"', ["\\"] = "\\", ["/"] = "/" }
 				if e == "u" then
@@ -473,9 +474,10 @@ local function decodeJson(src)
 			if src:sub(pos, pos + #lit - 1) == lit then pos = pos + #lit; return v end
 		end
 		local num = src:match("^-?%d+%.?%d*[eE]?[-+]?%d*", pos)
-		assert(num and num ~= "", "bad value at " .. pos)
+		local n = num and tonumber(num)
+		assert(n, "bad value at " .. pos)
 		pos = pos + #num
-		return tonumber(num)
+		return n
 	end
 	local v = value(); ws()
 	assert(pos > #src, "trailing data at " .. pos)
@@ -498,6 +500,9 @@ test("decodeJson: escapes, nesting, rejects broken input", function()
 	eq((pcall(decodeJson, '{"a": "b"')), false)
 	eq((pcall(decodeJson, '{"a": "b",}')), false)
 	eq((pcall(decodeJson, '{"a": 1, "a": 2}')), false)
+	eq((pcall(decodeJson, '[1-]')), false)
+	eq((pcall(decodeJson, '["a\\nb"]')), true) -- an escaped newline is fine
+	eq((pcall(decodeJson, '["a' .. "\n" .. 'b"]')), false) -- a raw one is not
 end)
 
 -- The game lists a local mod by _metadata/modinfo.json (as its own mods in
@@ -509,6 +514,11 @@ test("_metadata/modinfo.json: readable name, summary, author, tag", function()
 	assert(type(info.name) == "string" and info.name:find(" ") and not info.name:find("_"), "readable name")
 	assert(type(info.summary) == "string" and #info.summary > 0, "summary")
 	assert(type(info.description) == "string" and #info.description > #info.summary, "description")
+	-- the same keys as the game's own modinfo files, no more, no less
+	local keys = {}
+	for k in pairs(info) do keys[#keys + 1] = k end
+	table.sort(keys)
+	eq(table.concat(keys, ","), "authors,description,name,summary,tags,url")
 	eq(info.authors[1].name, "hummer")
 	eq(info.authors[1].role, "CREATOR")
 	-- a tag the game knows (its mod-tags list), so filters and translation work
@@ -517,7 +527,8 @@ end)
 
 -- strings.json: the tooltip label in every game language (base/strings/<lang>),
 -- and in every language but English the modinfo texts translated, keyed by
--- the English text as the game's own modinfo keys are looked up
+-- the English text (whether the game applies them to the mod list is
+-- unconfirmed; the English text shows otherwise)
 test("strings.json: label and modinfo texts in every game language", function()
 	local langs = readJson("strings.json")
 	local info = readJson("_metadata/modinfo.json")
@@ -553,10 +564,19 @@ test("mod.io description: every language names the official key", function()
 	}
 	local info = readJson("_metadata/modinfo.json")
 	assert(src:find(info.description, 1, true), "en text differs from modinfo.json")
+	local strings = readJson("strings.json")
 	for _, lang in ipairs(GAME_LANGS) do
 		local section = src:match("\n## " .. lang .. "\n(.-)\n## ") or src:match("\n## " .. lang .. "\n(.*)$")
 		assert(section, "no section for " .. lang)
 		assert(section:find(official[lang], 1, true), lang .. " doesn't name " .. official[lang])
+		-- the mod list texts (strings.json) and the mod.io page say the same
+		local t = strings[lang]
+		local name = lang == "en" and info.name or t[info.name]
+		local desc = lang == "en" and info.description or t[info.description]
+		assert(section:find("**" .. name .. "**", 1, true), lang .. " name differs from strings.json")
+		assert(section:find(desc, 1, true), lang .. " description differs from strings.json")
+		local summary = lang == "en" and info.summary or t[info.summary]
+		assert(summary:find(official[lang], 1, true), lang .. " summary doesn't name " .. official[lang])
 	end
 end)
 

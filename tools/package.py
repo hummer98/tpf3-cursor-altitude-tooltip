@@ -6,6 +6,10 @@ with the mod list name) and the licence go in. The repository's .git,
 tests/, tools/ and README stay out: players don't need them, and the git
 history would otherwise ship with every download.
 
+_metadata/ goes in although mod.io downloads normally lack it (the in-game
+uploader sends it as mod.io data): a manual install from the zip needs it,
+or the game lists the mod by its snake_case folder name.
+
 Before packing it runs the tests, checks that the JSON files parse and
 warns about uncommitted changes, so a zip is never built from a broken or
 unrecorded state. Backup and editor files (.*, *~, *.bak, *.orig, *.swp)

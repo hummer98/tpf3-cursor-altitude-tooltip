@@ -1,7 +1,9 @@
 # mod.io page text
 
-Name and description per game language, for the mod.io page (the game
-takes a mod's name and description from mod.io, not from strings.json).
+Name and description per game language, for the mod.io page. The English
+name and description are also in _metadata/modinfo.json (the game's mod
+list for a local mod), and the other languages' texts here are the same as
+their translations in strings.json (a test keeps them equal).
 Window and setting names follow the game's own translations (base.mo).
 
 ## en
