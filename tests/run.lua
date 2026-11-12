@@ -507,77 +507,69 @@ end)
 
 -- The game lists a local mod by _metadata/modinfo.json (as its own mods in
 -- mods/release/*/_metadata do); without it the list shows the folder name
--- in snake_case. The texts are plain English, so they read well even where
--- no translation applies.
+-- in snake_case. The game doesn't translate these texts through the mod's
+-- strings.json (checked in game, 2026-11-12) and mod.io keeps one name and
+-- one description, so like other multilingual mods the name is
+-- "English / 日本語" and the description carries every language in turn.
 test("_metadata/modinfo.json: readable name, summary, author, tag", function()
 	local info = readJson("_metadata/modinfo.json")
-	assert(type(info.name) == "string" and info.name:find(" ") and not info.name:find("_"), "readable name")
-	assert(type(info.summary) == "string" and #info.summary > 0, "summary")
-	assert(type(info.description) == "string" and #info.description > #info.summary, "description")
 	-- the same keys as the game's own modinfo files, no more, no less
 	local keys = {}
 	for k in pairs(info) do keys[#keys + 1] = k end
 	table.sort(keys)
 	eq(table.concat(keys, ","), "authors,description,name,summary,tags,url")
+	eq(info.name, "Cursor Altitude Tooltip / カーソル位置の標高表示")
+	-- mod.io limits: name 50 characters, summary 250 (counted in characters)
+	local function chars(str) return select(2, str:gsub("[^\128-\191]", "")) end
+	assert(chars(info.name) <= 50, "name too long for mod.io")
+	assert(chars(info.summary) <= 250, "summary too long for mod.io")
 	eq(info.authors[1].name, "hummer")
 	eq(info.authors[1].role, "CREATOR")
 	-- a tag the game knows (its mod-tags list), so filters and translation work
 	eq(info.tags[1], "Script Mod")
 end)
 
--- strings.json: the tooltip label in every game language (base/strings/<lang>),
--- and in every language but English the modinfo texts translated, keyed by
--- the English text (whether the game applies them to the mod list is
--- unconfirmed; the English text shows otherwise)
-test("strings.json: label and modinfo texts in every game language", function()
-	local langs = readJson("strings.json")
+-- every game language has a section in the description, and each names the
+-- key to hold as that language's key bindings name it (base.mo "Surface
+-- Snapping"), or players can't find it
+test("modinfo description: every language, each naming the official key", function()
 	local info = readJson("_metadata/modinfo.json")
-	local allowed = { cat_altitude = true, [info.name] = true, [info.summary] = true, [info.description] = true }
+	local official = {
+		en = { "English", "Surface Snapping" }, ja = { "日本語", "地表スナップ" },
+		de = { "Deutsch", "Oberflächen-Snapping" }, es = { "Español", "Ajuste a la superficie" },
+		fr = { "Français", "Accrochage aux surfaces" }, it = { "Italiano", "Agganciamento alla superficie" },
+		ko = { "한국어", "표면 스내핑" }, nl = { "Nederlands", "Vastklikken op oppervlak" },
+		pl = { "Polski", "Przyciąganie do powierzchni" }, pt_BR = { "Português (Brasil)", "Fixação na Superfície" },
+		ru = { "Русский", "Привязка к поверхности" }, zh_CN = { "简体中文", "表面吸附" },
+		zh_TW = { "繁體中文", "貼齊表面" },
+	}
+	local desc = info.description .. "\n\n["
+	local n = 0
+	for _, lang in ipairs(GAME_LANGS) do
+		local head, key = official[lang][1], official[lang][2]
+		local start = desc:find("[" .. head .. "] ", 1, true)
+		assert(start, "no section for " .. lang)
+		local section = desc:sub(start, desc:find("\n\n[", start, true))
+		assert(section:find(key, 1, true), lang .. " doesn't name " .. key)
+		n = n + 1
+	end
+	local sections = select(2, ("\n\n" .. info.description):gsub("\n\n%[", ""))
+	eq(sections, n, "one section per game language")
+	assert(info.summary:find("Surface Snapping", 1, true) and info.summary:find("地表スナップ", 1, true), "summary names the key")
+end)
+
+-- strings.json: only the tooltip label, in every game language
+-- (base/strings/<lang>); the game reads no other key from it
+test("strings.json: the label in every game language, nothing else", function()
+	local langs = readJson("strings.json")
 	local known = {}
 	for _, lang in ipairs(GAME_LANGS) do
 		known[lang] = true
 		local t = assert(langs[lang], "missing language " .. lang)
 		assert(type(t.cat_altitude) == "string" and t.cat_altitude ~= "", lang .. " lacks cat_altitude")
-		for k in pairs(t) do assert(allowed[k], lang .. " has an unused key: " .. k:sub(1, 40)) end
-		if lang ~= "en" then
-			for _, k in ipairs({ info.name, info.summary, info.description }) do
-				assert(type(t[k]) == "string" and t[k] ~= "" and t[k] ~= k, lang .. " lacks " .. k:sub(1, 40))
-			end
-		end
+		for k in pairs(t) do eq(k, "cat_altitude", lang .. " unused key") end
 	end
 	for lang in pairs(langs) do assert(known[lang], "unknown language " .. lang) end
-end)
-
--- the mod.io text names the key to hold as each language's key bindings
--- name it (base.mo "Surface Snapping"), or players can't find it
-test("mod.io description: every language names the official key", function()
-	local f = assert(io.open(root .. "/docs/modio_description.md"))
-	local src = f:read("*a")
-	f:close()
-	local official = {
-		en = "Surface Snapping", ja = "地表スナップ", de = "Oberflächen-Snapping",
-		es = "Ajuste a la superficie", fr = "Accrochage aux surfaces",
-		it = "Agganciamento alla superficie", ko = "표면 스내핑",
-		nl = "Vastklikken op oppervlak", pl = "Przyciąganie do powierzchni",
-		pt_BR = "Fixação na Superfície", ru = "Привязка к поверхности",
-		zh_CN = "表面吸附", zh_TW = "貼齊表面",
-	}
-	local info = readJson("_metadata/modinfo.json")
-	assert(src:find(info.description, 1, true), "en text differs from modinfo.json")
-	local strings = readJson("strings.json")
-	for _, lang in ipairs(GAME_LANGS) do
-		local section = src:match("\n## " .. lang .. "\n(.-)\n## ") or src:match("\n## " .. lang .. "\n(.*)$")
-		assert(section, "no section for " .. lang)
-		assert(section:find(official[lang], 1, true), lang .. " doesn't name " .. official[lang])
-		-- the mod list texts (strings.json) and the mod.io page say the same
-		local t = strings[lang]
-		local name = lang == "en" and info.name or t[info.name]
-		local desc = lang == "en" and info.description or t[info.description]
-		assert(section:find("**" .. name .. "**", 1, true), lang .. " name differs from strings.json")
-		assert(section:find(desc, 1, true), lang .. " description differs from strings.json")
-		local summary = lang == "en" and info.summary or t[info.summary]
-		assert(summary:find(official[lang], 1, true), lang .. " summary doesn't name " .. official[lang])
-	end
 end)
 
 -- the game resolves "<modId>::/..." paths by mod.json's modId and loads the

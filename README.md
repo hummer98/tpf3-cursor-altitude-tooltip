@@ -52,7 +52,8 @@ The code is plain Lua (`content/gui/`):
 | `cat_core.lua` | Pure helpers (text, units), no engine access |
 | `cat_map.lua` | Wraps the plain map view's action and swaps its tooltip |
 | `cat_install.res.lua` / `.script.lua` | Hook run at UI start-up |
-| `_metadata/modinfo.json` | Name, summary and description shown in the game's mod list for a local install. Translations are in `strings.json`, keyed by the English text; whether the game applies them there is unconfirmed, the English text shows otherwise |
+| `_metadata/modinfo.json` | Name, summary and description for the game's mod list and the in-game mod.io upload. The game shows one text for all languages, so the name is "English / 日本語" and the description has a section per language |
+| `_metadata/0.png` | Cover image (required by the in-game uploader, also shown in the mod list) |
 
 Tests run offline with LuaJIT and stub the game API:
 
@@ -62,8 +63,7 @@ luajit tests/run.lua
 
 `python3 tools/package.py` runs the tests and builds
 `dist/hummer_cursor_altitude_tooltip_1.zip` with only the files the game
-needs (no `.git`, tests or tools). The mod.io page text for every language is
-in [docs/modio_description.md](docs/modio_description.md).
+needs (no `.git`, tests or tools).
 
 ## License
 
