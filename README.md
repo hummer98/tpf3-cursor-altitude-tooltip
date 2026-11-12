@@ -63,7 +63,9 @@ luajit tests/run.lua
 
 `python3 tools/package.py` runs the tests and builds
 `dist/hummer_cursor_altitude_tooltip_1.zip` with only the files the game
-needs (no `.git`, tests or tools).
+needs (no `.git`, tests or tools). LICENSE stays out too: the game's mod
+validation rejects files without an allowed extension, so the mod
+description states the licence and links here instead.
 
 ## License
 

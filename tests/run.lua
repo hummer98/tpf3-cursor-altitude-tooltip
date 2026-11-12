@@ -568,6 +568,9 @@ test("modinfo description: every language, each naming the official key", functi
 		eq(found[i].head, head, "section " .. i .. " (English first, then the game's order)")
 		assert(found[i].text:find(key, 1, true), lang .. " doesn't name " .. key)
 	end
+	-- LICENSE can't ship in the mod (validation rejects extensionless files),
+	-- so the description states the licence and where the code is
+	assert(found[1].text:find("License: MIT", 1, true) and found[1].text:find("github.com/hummer98/tpf3-cursor-altitude-tooltip", 1, true), "licence and source link")
 	assert(info.summary:find("Surface Snapping", 1, true) and info.summary:find("地表スナップ", 1, true), "summary names the key")
 end)
 
