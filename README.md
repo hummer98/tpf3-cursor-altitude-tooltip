@@ -12,7 +12,7 @@ of the usual name tooltip. Release the key and the usual tooltip comes back.
 - Follows the game's unit setting (metres / feet).
 - Follows your key binding: whatever key you bind to "Surface Snapping" in
   the game's key bindings is the key that shows the altitude.
-- The label is translated into all 13 languages of the game.
+- The tooltip label is translated into all 13 languages of the game, and the mod description has a section for each.
 
 ## Where it shows, and where it doesn't
 
@@ -84,7 +84,7 @@ needs (no `.git`, tests or tools).
 - マウスカーソル下の地形の標高を小数1桁で表示します。
 - ゲームの単位設定（メートル／フィート）に従います。
 - キー割り当てに従います。ゲームのキー設定で「地表スナップ」に割り当てたキーで表示されます。
-- 表示ラベルはゲームの全13言語に対応しています。
+- ツールチップのラベルはゲームの全13言語に翻訳済みで、Modの説明文も言語ごとの段落があります。
 
 ### 表示される場面・されない場面
 

@@ -520,9 +520,12 @@ test("_metadata/modinfo.json: readable name, summary, author, tag", function()
 	eq(table.concat(keys, ","), "authors,description,name,summary,tags,url")
 	eq(info.name, "Cursor Altitude Tooltip / カーソル位置の標高表示")
 	-- mod.io limits: name 50 characters, summary 250 (counted in characters)
+	-- characters, not bytes: count the bytes that start a UTF-8 sequence
 	local function chars(str) return select(2, str:gsub("[^\128-\191]", "")) end
+	eq(chars("標高 m"), 4, "UTF-8 character count")
 	assert(chars(info.name) <= 50, "name too long for mod.io")
 	assert(chars(info.summary) <= 250, "summary too long for mod.io")
+	assert(chars(info.description) <= 50000, "description too long for mod.io")
 	eq(info.authors[1].name, "hummer")
 	eq(info.authors[1].role, "CREATOR")
 	-- a tag the game knows (its mod-tags list), so filters and translation work
@@ -543,18 +546,28 @@ test("modinfo description: every language, each naming the official key", functi
 		ru = { "Русский", "Привязка к поверхности" }, zh_CN = { "简体中文", "表面吸附" },
 		zh_TW = { "繁體中文", "貼齊表面" },
 	}
-	local desc = info.description .. "\n\n["
-	local n = 0
-	for _, lang in ipairs(GAME_LANGS) do
-		local head, key = official[lang][1], official[lang][2]
-		local start = desc:find("[" .. head .. "] ", 1, true)
-		assert(start, "no section for " .. lang)
-		local section = desc:sub(start, desc:find("\n\n[", start, true))
-		assert(section:find(key, 1, true), lang .. " doesn't name " .. key)
-		n = n + 1
+	-- sections are paragraphs starting with "[<language>] "; read them in
+	-- order from line starts only, so a "[" inside a text can't fake one
+	local found = {}
+	-- split on blank lines (plain find: Lua 5.1 patterns can't hold "\0")
+	local paras, from = {}, 1
+	while true do
+		local at = info.description:find("\n\n", from, true)
+		paras[#paras + 1] = info.description:sub(from, (at or 0) - 1)
+		if not at then break end
+		from = at + 2
 	end
-	local sections = select(2, ("\n\n" .. info.description):gsub("\n\n%[", ""))
-	eq(sections, n, "one section per game language")
+	for _, para in ipairs(paras) do
+		local head = para:match("^%[([^%]\n]+)%] ")
+		assert(head, "paragraph without a language heading: " .. para:sub(1, 30))
+		found[#found + 1] = { head = head, text = para }
+	end
+	eq(#found, #GAME_LANGS, "one section per game language")
+	for i, lang in ipairs(GAME_LANGS) do
+		local head, key = official[lang][1], official[lang][2]
+		eq(found[i].head, head, "section " .. i .. " (English first, then the game's order)")
+		assert(found[i].text:find(key, 1, true), lang .. " doesn't name " .. key)
+	end
 	assert(info.summary:find("Surface Snapping", 1, true) and info.summary:find("地表スナップ", 1, true), "summary names the key")
 end)
 
