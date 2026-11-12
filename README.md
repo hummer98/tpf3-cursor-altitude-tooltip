@@ -39,7 +39,7 @@ of the usual name tooltip. Release the key and the usual tooltip comes back.
   `<Steam>/userdata/<your id>/3493540/local/mods/`.
   - From the release zip: create that folder and extract the zip **into**
     it (the zip has no top folder of its own).
-  - From GitHub: `git clone <repository URL> hummer_cursor_altitude_tooltip_1`
+  - From GitHub: `git clone https://github.com/hummer98/tpf3-cursor-altitude-tooltip.git hummer_cursor_altitude_tooltip_1`
     inside `local/mods/` (a different folder name will not load).
   - Then enable the mod in the game.
 
@@ -102,7 +102,7 @@ in [docs/modio_description.md](docs/modio_description.md).
 - 手動：ゲームは `<Steam>/userdata/<ID>/3493540/local/mods/` の中の、
   名前がちょうど `hummer_cursor_altitude_tooltip_1` のフォルダからだけ読み込みます。
   - リリースの zip から：そのフォルダを作り、その**中に** zip を展開します（zip には外側のフォルダがありません）。
-  - GitHub から：`local/mods/` の中で `git clone <リポジトリURL> hummer_cursor_altitude_tooltip_1` とします（別のフォルダ名では読み込まれません）。
+  - GitHub から：`local/mods/` の中で `git clone https://github.com/hummer98/tpf3-cursor-altitude-tooltip.git hummer_cursor_altitude_tooltip_1` とします（別のフォルダ名では読み込まれません）。
   - そのあとゲーム内で有効にします。
 
 ### ライセンス
