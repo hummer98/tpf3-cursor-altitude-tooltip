@@ -1,2 +1,3 @@
 # release zips built by tools/package.py
 dist/
+__pycache__/

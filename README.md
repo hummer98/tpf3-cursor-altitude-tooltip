@@ -67,6 +67,15 @@ needs (no `.git`, tests or tools). LICENSE stays out too: the game's mod
 validation rejects files without an allowed extension, so the mod
 description states the licence and links here instead.
 
+To publish an update, raise `revision` in `mod.json`, commit, then run
+`python3 tools/stage.py`. It runs the same checks, refuses uncommitted
+changes or an unraised revision, and rebuilds the game's staging copy
+(`local/staging_area/hummer_cursor_altitude_tooltip_1`) while keeping the
+`_metadata/mod.io_fileid.txt` the game wrote at the first upload, which is
+what makes the upload update this mod instead of creating a new one. Then in
+the game: MOD hub > My mods > Revalidate > Update. `--keep-revision` allows
+a metadata-only update. Tool tests: `python3 -m unittest discover -s tests`.
+
 ## License
 
 [MIT](LICENSE) © 2026 hummer

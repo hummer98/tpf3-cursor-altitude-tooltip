@@ -48,6 +48,13 @@ def preflight():
     if tests.returncode != 0:
         sys.exit(tests.stdout + tests.stderr + "tests failed, no zip built")
     print(tests.stdout.strip().splitlines()[-1])
+    # the staging tool guards the mod.io file id; test it before every build
+    py = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s",
+                         "tests"], cwd=ROOT, capture_output=True, text=True)
+    if py.returncode != 0:
+        sys.exit(py.stdout + py.stderr + "tool tests failed, no zip built")
+    ran = [l for l in py.stderr.splitlines() if l.startswith("Ran ")]
+    print((ran[-1] if ran else "tool tests") + ": OK")
     try:
         dirty = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT,
                                capture_output=True, text=True).stdout.strip()
