@@ -101,7 +101,7 @@ description states the licence and links here instead.
 
 ### 導入
 
-- mod.io：<https://mod.io/g/transportfever3/m/cursor-altitude-tooltip>（ゲーム内の MOD ハブからも購読できます）
+- mod.io：<https://mod.io/g/transportfever3/m/cursor-altitude-tooltip>（ゲーム内の MODハブからも購読できます）
 - 手動：ゲームは `<Steam>/userdata/<ID>/3493540/local/mods/` の中の、
   名前がちょうど `hummer_cursor_altitude_tooltip_1` のフォルダからだけ読み込みます。
   - リリースの zip から：そのフォルダを作り、その**中に** zip を展開します（zip には外側のフォルダがありません）。

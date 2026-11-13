@@ -612,11 +612,10 @@ test("README links the mod.io page in both languages", function()
 	local src = f:read("*a")
 	f:close()
 	local url = "https://mod.io/g/transportfever3/m/cursor-altitude-tooltip"
-	local n = 0
-	for line in src:gmatch("[^\n]+") do
-		if line:find("mod.io", 1, true) and line:find(url, 1, true) then n = n + 1 end
-	end
-	eq(n, 2, "mod.io lines with the link")
+	-- each language section needs its own link; extra links (badges) are fine
+	local split = assert(src:find("\n## 日本語", 1, true), "Japanese section")
+	assert(src:sub(1, split):find(url, 1, true), "English section link")
+	assert(src:sub(split):find(url, 1, true), "Japanese section link")
 	assert(not src:find("link to be added", 1, true), "English placeholder left")
 	assert(not src:find("公開後に追記", 1, true), "Japanese placeholder left")
 end)
