@@ -12,14 +12,20 @@ Checks before touching the staging area:
 - the tests pass and the JSON files parse (same preflight as package.py);
 - the working tree is committed, so what goes to mod.io is in git history
   (--allow-dirty skips this);
-- mod.json's revision is higher than the staged one once the mod has been
-  uploaded, so players' copies are seen as outdated (--keep-revision skips
-  this, e.g. for a metadata-only update).
+- the staged copy has the mod.io file id: the mod is published, so staging
+  without it would make the next upload a second mod.io page
+  (--first-upload skips this, only for a mod not yet on mod.io);
+- mod.json's revision is higher than the staged one, so players' copies
+  are seen as outdated (--keep-revision allows the same revision, e.g. for
+  a metadata-only update, never a lower one).
 
-The new copy is built next to the staging area and swapped in with
-renames, so the game never sees a half-written folder.
+The new copy is built next to the staging area and swapped in with two
+renames, so the game never sees a half-written folder (only, for a moment,
+none). If a run dies between the renames, the old copy is left in
+local/.stage_old_<folder>; the next run puts it back instead of deleting it.
 
-Usage (from anywhere): python3 tools/stage.py [--allow-dirty] [--keep-revision]
+Usage (from anywhere):
+  python3 tools/stage.py [--allow-dirty] [--keep-revision] [--first-upload]
 """
 import argparse
 import json
@@ -44,8 +50,11 @@ class StageError(Exception):
 
 
 def revision(mod_json_path):
-    with open(mod_json_path, encoding="utf-8") as f:
-        rev = json.load(f).get("revision")
+    try:
+        with open(mod_json_path, encoding="utf-8") as f:
+            rev = json.load(f).get("revision")
+    except (OSError, ValueError, AttributeError) as e:
+        raise StageError("%s: %s" % (mod_json_path, e))
     if not isinstance(rev, int):
         raise StageError("%s: revision is not an integer" % mod_json_path)
     return rev
@@ -69,7 +78,21 @@ def is_dirty(root):
     return out.stdout.strip()
 
 
-def stage(root, staging_area, files, keep_revision=False):
+def recover_interrupted(target, old_tmp):
+    """A previous run died between its renames: old_tmp holds the last good
+    copy, possibly the only mod.io file id. Never delete it blindly."""
+    if not os.path.exists(old_tmp):
+        return
+    if os.path.lexists(target):
+        raise StageError("%s is left over from an interrupted run and %s "
+                         "also exists; check which one has "
+                         "_metadata/mod.io_fileid.txt, keep it as the "
+                         "staging copy and remove the other" % (old_tmp, target))
+    os.rename(old_tmp, target)
+    print("restored the staging copy from an interrupted run: " + target)
+
+
+def stage(root, staging_area, files, keep_revision=False, first_upload=False):
     """Rebuilds staging_area/<folder> from files ((src, rel) pairs).
 
     Returns (target, preserved names, uploaded) where uploaded tells whether
@@ -80,26 +103,34 @@ def stage(root, staging_area, files, keep_revision=False):
         raise StageError("staging area not found: %s (start the game once)"
                          % staging_area)
     target = os.path.join(staging_area, folder)
-    keep = preserved_files(target)
-    uploaded = any(os.path.basename(p) == "mod.io_fileid.txt" for p in keep)
-
-    if uploaded and not keep_revision:
-        old = revision(os.path.join(target, "mod.json"))
-        new = revision(os.path.join(root, "mod.json"))
-        if new <= old:
-            raise StageError(
-                "mod.json revision %d is not above the uploaded %d: raise it "
-                "(or pass --keep-revision for a metadata-only update)"
-                % (new, old))
-
     # build beside staging_area, not inside it: the game scans that folder
     # live and would try to validate a half-copied mod
     parent = os.path.dirname(os.path.normpath(staging_area))
     tmp = os.path.join(parent, ".stage_new_" + folder)
     old_tmp = os.path.join(parent, ".stage_old_" + folder)
-    for leftover in (tmp, old_tmp):
-        if os.path.exists(leftover):
-            shutil.rmtree(leftover)
+    recover_interrupted(target, old_tmp)
+
+    keep = preserved_files(target)
+    uploaded = any(os.path.basename(p) == "mod.io_fileid.txt" for p in keep)
+    if not uploaded and not first_upload:
+        raise StageError(
+            "%s has no _metadata/mod.io_fileid.txt; this mod is on mod.io, so "
+            "the next upload would create a second page. Restore the file "
+            "(or pass --first-upload for a mod not yet published)" % target)
+
+    if uploaded:
+        old = revision(os.path.join(target, "mod.json"))
+        new = revision(os.path.join(root, "mod.json"))
+        if new < old or (new == old and not keep_revision):
+            raise StageError(
+                "mod.json revision %d is not above the uploaded %d: raise it "
+                "(or pass --keep-revision for a metadata-only update)"
+                % (new, old))
+
+    # the only thing removed unconditionally: a half-built copy, which never
+    # holds anything the game wrote
+    if os.path.exists(tmp):
+        shutil.rmtree(tmp)
     try:
         for src, rel in files:
             dst = os.path.join(tmp, rel)
@@ -130,6 +161,9 @@ def main(argv=None):
                     help="stage uncommitted changes")
     ap.add_argument("--keep-revision", action="store_true",
                     help="do not require a higher mod.json revision")
+    ap.add_argument("--first-upload", action="store_true",
+                    help="stage without a mod.io file id (mod not yet "
+                    "published)")
     ap.add_argument("--staging-area", default=DEFAULT_STAGING_AREA,
                     help=argparse.SUPPRESS)
     args = ap.parse_args(argv)
@@ -141,7 +175,7 @@ def main(argv=None):
         package.preflight()
         target, kept, uploaded = stage(ROOT, args.staging_area,
                                        list(package.files_to_pack()),
-                                       args.keep_revision)
+                                       args.keep_revision, args.first_upload)
     except StageError as e:
         sys.exit("stage: %s" % e)
     print("staged: " + target)
@@ -151,9 +185,8 @@ def main(argv=None):
         print("In game: MOD hub > My mods > this mod > Revalidate, write the "
               "change log, then Update.")
     else:
-        print("No mod.io file id: the next upload creates a NEW mod.io page. "
-              "If this mod is already on mod.io, stop and restore "
-              "_metadata/mod.io_fileid.txt first.")
+        print("In game: MOD hub > My mods > this mod > Upload (first upload "
+              "creates the mod.io page and its file id).")
 
 
 if __name__ == "__main__":

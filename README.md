@@ -74,7 +74,8 @@ changes or an unraised revision, and rebuilds the game's staging copy
 `_metadata/mod.io_fileid.txt` the game wrote at the first upload, which is
 what makes the upload update this mod instead of creating a new one. Then in
 the game: MOD hub > My mods > Revalidate > Update. `--keep-revision` allows
-a metadata-only update. Tool tests: `python3 -m unittest discover -s tests`.
+a metadata-only update. It refuses to stage without the file id, since the
+upload would then create a second mod.io page. Tool tests: `python3 -m unittest discover -s tests`.
 
 ## License
 
