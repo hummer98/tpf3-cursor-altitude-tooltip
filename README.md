@@ -33,7 +33,7 @@ of the usual name tooltip. Release the key and the usual tooltip comes back.
 
 ## Install
 
-- mod.io: _link to be added_ (subscribe in the game's mod manager).
+- mod.io: <https://mod.io/g/transportfever3/m/cursor-altitude-tooltip> (or subscribe in the game's mod hub).
 - Manually: the game loads a local mod only from a folder named exactly
   `hummer_cursor_altitude_tooltip_1` inside
   `<Steam>/userdata/<your id>/3493540/local/mods/`.
@@ -101,7 +101,7 @@ description states the licence and links here instead.
 
 ### 導入
 
-- mod.io：_リンクは公開後に追記_（ゲーム内の Mod 管理から購読）
+- mod.io：<https://mod.io/g/transportfever3/m/cursor-altitude-tooltip>（ゲーム内の MOD ハブからも購読できます）
 - 手動：ゲームは `<Steam>/userdata/<ID>/3493540/local/mods/` の中の、
   名前がちょうど `hummer_cursor_altitude_tooltip_1` のフォルダからだけ読み込みます。
   - リリースの zip から：そのフォルダを作り、その**中に** zip を展開します（zip には外側のフォルダがありません）。
