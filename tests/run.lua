@@ -509,8 +509,9 @@ end)
 -- mods/release/*/_metadata do); without it the list shows the folder name
 -- in snake_case. The game doesn't translate these texts through the mod's
 -- strings.json (checked in game, 2026-11-12) and mod.io keeps one name and
--- one description, so like other multilingual mods the name is
--- "English / 日本語" and the description carries every language in turn.
+-- one description, so the description carries every language in turn.
+-- The name is English only: published mod names carry no Japanese
+-- (decided 2026-11-22), the summary and description keep it.
 test("_metadata/modinfo.json: readable name, summary, author, tag", function()
 	local info = readJson("_metadata/modinfo.json")
 	-- the same keys as the game's own modinfo files, no more, no less
@@ -518,7 +519,8 @@ test("_metadata/modinfo.json: readable name, summary, author, tag", function()
 	for k in pairs(info) do keys[#keys + 1] = k end
 	table.sort(keys)
 	eq(table.concat(keys, ","), "authors,description,name,summary,tags,url")
-	eq(info.name, "Cursor Altitude Tooltip / カーソル位置の標高表示")
+	eq(info.name, "Cursor Altitude Tooltip")
+	assert(not info.name:find("[\128-\255]"), "name is English (ASCII) only")
 	-- mod.io limits: name 50 characters, summary 250 (counted in characters)
 	-- characters, not bytes: count the bytes that start a UTF-8 sequence
 	local function chars(str) return select(2, str:gsub("[^\128-\191]", "")) end
