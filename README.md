@@ -67,7 +67,15 @@ needs (no `.git`, tests or tools). LICENSE stays out too: the game's mod
 validation rejects files without an allowed extension, so the mod
 description states the licence and links here instead.
 
-To publish an update, raise `revision` in `mod.json`, commit, then run
+Versions are `MAJOR.MINOR.PATCH` in `VERSION`; `mod.json`'s `revision` is
+MAJOR * 10000 + MINOR * 100 + PATCH, and changes are listed in
+[CHANGELOG.md](CHANGELOG.md). `python3 tools/release.py patch` (or `minor`,
+`major`, `X.Y.Z`) writes the version, the revision and the changelog
+section, commits, tags `vX.Y.Z` and creates the GitHub release with
+`dist/hummer_cursor_altitude_tooltip-vX.Y.Z.zip` attached (details in
+[docs/release.md](docs/release.md), in Japanese).
+
+To publish an update on mod.io, cut a release, then run
 `python3 tools/stage.py`. It runs the same checks, refuses uncommitted
 changes or an unraised revision, and rebuilds the game's staging copy
 (`local/staging_area/hummer_cursor_altitude_tooltip_1`) while keeping the
