@@ -1,6 +1,6 @@
 {
 	"modId": "hummer_cursor_altitude_tooltip",
-	"revision": 10000,
+	"revision": 10001,
 	"severityAdd": "None",
 	"severityRemove": "None",
 	"visible": true,
