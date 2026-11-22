@@ -228,6 +228,13 @@ class RepositoryTest(unittest.TestCase):
     def test_version_revision_and_changelog_agree(self):
         self.assertEqual(release.consistency(REPO), [])
 
+    def test_release_title_is_the_mod_name(self):
+        # the GitHub release title must follow a rename of the mod
+        import json
+        with open(os.path.join(REPO, "_metadata", "modinfo.json"),
+                  encoding="utf-8") as f:
+            self.assertEqual(release.TITLE, json.load(f)["name"])
+
     def test_changelog_has_entries_to_release_or_the_versions_section(self):
         text = read(os.path.join(REPO, "CHANGELOG.md"))
         self.assertTrue(release.has_entries(release.section(text,

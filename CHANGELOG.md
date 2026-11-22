@@ -10,7 +10,7 @@ mod's `revision` in `mod.json` is MAJOR * 10000 + MINOR * 100 + PATCH.
 ### Changed
 - The mod's name in the game's mod list and on mod.io is now English only,
   "Cursor Altitude Tooltip". The summary and the description still carry
-  Japanese, and the description every game language.
+  Japanese, and the description has a section for every game language.
 
 ## [1.0.0] - 2026-11-12
 

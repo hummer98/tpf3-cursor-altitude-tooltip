@@ -63,7 +63,7 @@ luajit tests/run.lua
 
 `python3 tools/package.py` runs the tests and builds
 `dist/hummer_cursor_altitude_tooltip_1.zip` with only the files the game
-needs (no `.git`, tests or tools). LICENSE stays out too: the game's mod
+needs (no `.git`, tests, tools, docs, `VERSION` or `CHANGELOG.md`). LICENSE stays out too: the game's mod
 validation rejects files without an allowed extension, so the mod
 description states the licence and links here instead.
 
@@ -76,7 +76,8 @@ section, commits, tags `vX.Y.Z` and creates the GitHub release with
 [docs/release.md](docs/release.md), in Japanese).
 
 To publish an update on mod.io, cut a release, then run
-`python3 tools/stage.py`. It runs the same checks, refuses uncommitted
+`python3 tools/stage.py` in the copy the game loads from `local/mods/`, with
+the game stopped (steps in [docs/release.md](docs/release.md)). It runs the same checks, refuses uncommitted
 changes or an unraised revision, and rebuilds the game's staging copy
 (`local/staging_area/hummer_cursor_altitude_tooltip_1`) while keeping the
 `_metadata/mod.io_fileid.txt` the game wrote at the first upload, which is

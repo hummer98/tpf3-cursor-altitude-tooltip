@@ -59,7 +59,7 @@ python3 tools/release.py --github-only        # HEAD のタグの push と GitHu
 ## 1.0.0（版の番号を入れる前の公開）
 
 - 1.0.0 は 2026-11-12 に GitHub と mod.io（ゲーム内のアップローダー）へ出したもの。そのときは版の番号が無く、`mod.json` の revision は 1 だった。`CHANGELOG.md` の `[1.0.0]` はその記録で、タグ `v1.0.0` と GitHub の release は無い。
-- 版の番号を入れたコミットで `VERSION` を 1.0.0、revision を 10000 にした（`tests/test_release.py` が両者の一致を求めるため）。revision 10000 のものは mod.io に上げていない。次の 1.0.1（revision 10001）からは、上の手順どおりタグと GitHub の release が付く。
+- 版の番号を入れたコミットで `VERSION` を 1.0.0、revision を 10000 にした（`tests/test_release.py` が両者の一致を求めるため）。revision 10000 のものは mod.io に上げていない（上げない。ステージングのコピーは revision 1 のままなので、`stage.py` はこの状態でも通ってしまう。必ず 1.0.1 を出してから stage する）。次の 1.0.1（revision 10001）からは、上の手順どおりタグと GitHub の release が付く。
 
 ## 更新（1.0.1 など）
 
@@ -75,7 +75,7 @@ python3 tools/release.py --github-only        # HEAD のタグの push と GitHu
    - `--keep-revision` は、revision を上げずに mod.io のデータだけを上げ直すとき（同じ版の上げ直し）に限る。
    - `mod.io_fileid.txt` が無いと止まる（2つ目のページができるのを防ぐため）。
 5. ゲームの中で MOD hub > My mods > この MOD > Revalidate、変更の欄にその版の節（`--github-only --dry-run` の `notes:` の後の文）を写し、Update。
-6. 説明文が変わったら、mod.io の Web のページも直す。
+6. 名前・要約・説明文が変わったら、Update の後に mod.io の Web のページで反映されたかを確認し、違えば Web のページで直す（ゲーム内の Update で mod.io の名前まで変わるかは、まだ確認していない）。
 
 ## mod.io の MOD ID の控え
 - mod.io の MOD ID は **6523060**（https://mod.io/g/transportfever3/m/cursor-altitude-tooltip 、最初のアップロードは 2026-11-12 の 1.0.0）。
