@@ -89,6 +89,173 @@ test("tooltipText reads z from a userdata Vec3f", function()
 end)
 
 ------------------------------------------------------------------------
+-- cat_core: measuring between two points
+------------------------------------------------------------------------
+
+test("tracker: press, move, release, press again", function()
+	local t = core.newTracker()
+	local o = t.update(true, true, { x = 10, y = 20, z = 5 })
+	eq(o.x, 10); eq(o.y, 20); eq(o.z, 5)
+	-- moving keeps the origin where the key went down
+	o = t.update(true, true, { x = 100, y = 20, z = 9 })
+	eq(o.x, 10); eq(o.z, 5)
+	-- a second sample in the same step changes nothing
+	o = t.update(true, true, { x = 100, y = 20, z = 9 })
+	eq(o.x, 10)
+	eq(t.update(false), nil, "release drops it")
+	eq(t.origin, nil)
+	o = t.update(true, true, { x = -3, y = 4, z = 1 })
+	eq(o.x, -3, "next press starts afresh")
+end)
+
+test("tracker: pressed off the terrain, origin is the first terrain point", function()
+	local t = core.newTracker()
+	eq(t.update(true, false, nil), nil)
+	eq(t.update(true, true, nil), nil, "has but nil pos")
+	eq(t.update(true, true, { x = 1, y = 2, z = 0 / 0 }), nil, "NaN is not a point")
+	local o = t.update(true, true, { x = 7, y = 8, z = 9 })
+	eq(o.x, 7)
+	-- leaving the terrain again keeps it
+	o = t.update(true, false, nil)
+	eq(o.x, 7)
+	o = t.update(true, true, { x = 50, y = 8, z = 9 })
+	eq(o.x, 7)
+end)
+
+test("tracker: the origin is a copy, not the engine's (reused) vector", function()
+	local t = core.newTracker()
+	local v = { x = 1, y = 1, z = 1 }
+	t.update(true, true, v)
+	v.x = 99
+	eq(t.update(true, true, v).x, 1)
+end)
+
+test("tracker: a gap in the samples counts as a new press", function()
+	local t = core.newTracker()
+	t.update(true, true, { x = 1, y = 0, z = 0 }, 10.0)
+	eq(t.update(true, true, { x = 5, y = 0, z = 0 }, 10.5).x, 1)
+	-- the view stopped stepping (a tool on top); key up and down unseen
+	eq(t.update(true, true, { x = 9, y = 0, z = 0 }, 10.5 + core.STALE_SECONDS + 0.1).x, 9)
+	-- without a clock it behaves as before
+	local u = core.newTracker()
+	u.update(true, true, { x = 1, y = 0, z = 0 })
+	eq(u.update(true, true, { x = 2, y = 0, z = 0 }, nil).x, 1)
+end)
+
+test("tracker: nil and junk input", function()
+	local t = core.newTracker()
+	eq(t.update(nil, nil, nil), nil)
+	eq(t.update("yes", true, { x = 1, y = 1, z = 1 }), nil, "only true is held")
+	eq(t.update(true, true, 42), nil)
+	eq(t.update(true, true, "pos"), nil)
+	eq(t.update(true, true, { x = 1, y = "2", z = 3 }), nil)
+	eq(t.update(true, true, { x = 1, y = 2, z = 3 }).y, 2)
+end)
+
+test("tracker: reads a userdata Vec3f", function()
+	local ud = newproxy and newproxy(true)
+	if not ud then return end
+	getmetatable(ud).__index = function(_, k) return ({ x = 1, y = 2, z = 3 })[k] end
+	eq(core.newTracker().update(true, true, ud).z, 3)
+	-- a userdata that throws on index is no point
+	local bad = newproxy(true)
+	getmetatable(bad).__index = function() error("expired") end
+	eq(core.copyPos(bad), nil)
+end)
+
+test("measure: signed height, horizontal distance, incline", function()
+	local m = core.measure({ x = 0, y = 0, z = 10 }, { x = 30, y = 40, z = 15 })
+	eq(m.dz, 5); eq(m.dist, 50); eq(m.incline, 0.1)
+	m = core.measure({ x = 0, y = 0, z = 15 }, { x = 30, y = 40, z = 10 })
+	eq(m.dz, -5); eq(m.incline, -0.1)
+end)
+
+test("measure: nothing below MIN_DISTANCE or without both points", function()
+	eq(core.measure({ x = 0, y = 0, z = 0 }, { x = 0, y = 0, z = 0 }), nil, "same point")
+	eq(core.measure({ x = 0, y = 0, z = 0 }, { x = 0.6, y = 0.6, z = 50 }), nil, "0.85 m apart")
+	assert(core.measure({ x = 0, y = 0, z = 0 }, { x = 1, y = 0, z = 0 }), "1 m is enough")
+	eq(core.measure(nil, { x = 1, y = 0, z = 0 }), nil)
+	eq(core.measure({ x = 1, y = 0, z = 0 }, nil), nil)
+	eq(core.measureLines(nil, { x = 1, y = 0, z = 0 }), nil)
+	eq(core.lineKey({ x = 0, y = 0, z = 0 }, { x = 0.5, y = 0, z = 0 }, 1), nil)
+end)
+
+test("formatHeightDiff: sign, zero, game formatter, feet fallback", function()
+	eq(core.formatHeightDiff("D", 12.34, fmt), "D: +12.3 m")
+	eq(core.formatHeightDiff("D", -12.34, fmt), "D: -12.3 m")
+	eq(core.formatHeightDiff("D", 0.04, fmt), "D: 0.0 m", "no sign for zero")
+	eq(core.formatHeightDiff("D", -0.04, nil), "D: 0.0 m")
+	-- a formatter that prints its own minus would double it: it gets the magnitude
+	local seen
+	eq(core.formatHeightDiff("D", -3, function(v, d) seen = v; return string.format("%.1f m", v) end), "D: -3.0 m")
+	eq(seen, 3)
+	eq(core.formatHeightDiff("D", 10, nil, true), "D: +32.8 ft")
+	eq(core.formatHeightDiff("D", -10, function() error("x") end, true), "D: -32.8 ft")
+end)
+
+test("formatDistance: game formatter, metric and imperial fallback", function()
+	eq(core.formatDistance("L", 340.2, function(v) return string.format("%.0f m (game)", v) end), "L: 340 m (game)")
+	eq(core.formatDistance("L", 5.25, nil), "L: 5.2 m")
+	eq(core.formatDistance("L", 340.4, nil), "L: 340 m")
+	eq(core.formatDistance("L", 1500, nil), "L: 1.50 km")
+	eq(core.formatDistance("L", 2, nil, true), "L: 6.6 ft")
+	eq(core.formatDistance("L", 100, nil, true), "L: 328 ft")
+	eq(core.formatDistance("L", 1609.344, nil, true), "L: 1.00 mi")
+	eq(core.formatDistance("L", 100, function() return "" end, true), "L: 328 ft", "junk from the game: fallback")
+end)
+
+test("formatIncline: whole percent like the base slider, signed", function()
+	eq(core.INCLINE_DECIMALS, 0)
+	eq(core.formatIncline("I", 0.1, nil), "I: +10%")
+	eq(core.formatIncline("I", -0.034, nil), "I: -3%")
+	eq(core.formatIncline("I", 0.004, nil), "I: 0%", "rounds to 0: no sign")
+	eq(core.formatIncline("I", -0.004, nil), "I: 0%")
+	local args
+	eq(core.formatIncline("I", -0.25, function(v, d) args = { v, d }; return string.format("%.0f %%", v * 100) end), "I: -25 %")
+	eq(args[1], 0.25); eq(args[2], 0)
+	-- more decimals: one line
+	core.INCLINE_DECIMALS = 1
+	local ok, s = pcall(core.formatIncline, "I", 0.0123, nil)
+	core.INCLINE_DECIMALS = 0
+	assert(ok, s)
+	eq(s, "I: +1.2%")
+end)
+
+test("measureLines: height difference, distance and incline (switchable)", function()
+	local o, p = { x = 0, y = 0, z = 10 }, { x = 30, y = 40, z = 15 }
+	local labels = { diff = "高度差", distance = "距離", incline = "勾配" }
+	local lines = core.measureLines(o, p, labels, { altitude = fmt }, false, true)
+	eq(#lines, 3)
+	eq(lines[1], "高度差: +5.0 m")
+	eq(lines[2], "距離: 50 m")
+	eq(lines[3], "勾配: +10%")
+	lines = core.measureLines(o, p, labels, { altitude = fmt }, false, false)
+	eq(#lines, 2, "incline off")
+	-- no labels or formatters given: English fallbacks
+	lines = core.measureLines(o, p, nil, nil, true, true)
+	eq(lines[1], "Height difference: +16.4 ft")
+	eq(lines[2], "Distance: 164 ft")
+	eq(lines[3], "Incline: +10%")
+end)
+
+test("tooltipText: extra lines under the altitude, one per line", function()
+	eq(core.tooltipText(true, true, { z = 1 }, "A", nil, false, { "B", "C" }), "A: 1.0 m\nB\nC")
+	eq(core.tooltipText(true, true, { z = 1 }, "A", nil, false, {}), "A: 1.0 m")
+	eq(core.tooltipText(true, true, { z = 1 }, "A", nil, false, nil), "A: 1.0 m")
+	eq(core.tooltipText(false, true, { z = 1 }, "A", nil, false, { "B" }), nil)
+end)
+
+test("lineKey: snapped end points", function()
+	local k = core.lineKey({ x = 0.4, y = 10.6, z = 3.2 }, { x = 20.49, y = -5.5, z = 7.7 }, 1)
+	eq(table.concat(k, ","), "0,11,3,20,-5,8")
+	k = core.lineKey({ x = 0, y = 0, z = 0 }, { x = 7, y = 0, z = 0 }, 5)
+	eq(table.concat(k, ","), "0,0,0,5,0,0")
+	-- a bad grid falls back to 1 m
+	k = core.lineKey({ x = 0, y = 0, z = 0 }, { x = 7.2, y = 0, z = 0 }, 0)
+	eq(k[4], 7)
+end)
+
+------------------------------------------------------------------------
 -- cat_map with stubbed GUI modules
 ------------------------------------------------------------------------
 local logs = {}
@@ -96,7 +263,7 @@ debugPrint = function(s) logs[#logs + 1] = s end
 _ = function(k) if k == "cat_altitude" then return "標高" end return k end
 
 local held, hasPos, pos = false, true, { x = 0, y = 0, z = 50 }
-local heldIA
+local heldIA, zoneCalls
 local function resetApi()
 	held, hasPos, pos, heldIA = false, true, { x = 0, y = 0, z = 50 }, nil
 	api = {
@@ -110,6 +277,27 @@ local function resetApi()
 			},
 		},
 		util = { formatAltitude = fmt },
+		type = {
+			Vec3f = { new = function(x, y, z) return { x = x, y = y, z = z } end },
+			Vec4f = { new = function(r, g, b, a) return { r, g, b, a } end },
+			Vec2f = { new = function(x, y) return { x = x, y = y } end },
+			LayerConfig = {
+				new = function() return { kind = "LayerConfig" } end,
+				CargoFlowRenderableConfig = {
+					new = function() return { kind = "CargoFlow" } end,
+					FlowData = { new = function() return { kind = "FlowData" } end },
+				},
+			},
+		},
+		res = { cargoTypeRep = { getPassengerCargoTypeId = function() return 0 end } },
+	}
+	-- the zone calls (LINE_MODE "zone"), recorded
+	zoneCalls = {}
+	api.gui.mission = {
+		setZone = function(key, pts, draw, color, prohibit, anim)
+			zoneCalls[#zoneCalls + 1] = { "set", key, pts, draw, prohibit, anim }
+		end,
+		removeZone = function(key) zoneCalls[#zoneCalls + 1] = { "remove", key } end,
 	}
 end
 resetApi()
@@ -118,18 +306,26 @@ resetApi()
 -- function (render it by calling it), useStepState evaluates getter now
 local function newMods()
 	local registered = {}
+	local events, unmounts = {}, {}
 	local react = {
 		registered = registered,
+		events = events,
+		unmounts = unmounts,
 		RegisterRecipe = function(name, fn)
 			registered[#registered + 1] = name
 			return fn
 		end,
 		setMouseTransparent = function() end,
+		-- the last handler per name, as a re-render replaces it
+		onEvent = function(name, fn) events[name] = fn end,
+		onUnmount = function(fn) unmounts[#unmounts + 1] = fn end,
 	}
 	local builtin = {
 		ActionTooltip = function(p) return { kind = "ActionTooltip", recipe = p.recipe, param = p.param } end,
 		TextView = function(p) return { kind = "TextView", text = p.text, class = p.meta and p.meta.class } end,
 		BoxLayout = function(p) return { kind = "BoxLayout", children = p.children } end,
+		ActionDescriptor = function(p) return { kind = "ActionDescriptor", children = p.children, params = p } end,
+		LayerConfig = function(p) return { kind = "LayerConfigNode", config = p.config } end,
 	}
 	local tooltips = {
 		DefaultEntityToolTip = function(param) return { kind = "Default", param = param } end,
@@ -149,7 +345,10 @@ local function newMods()
 	sru.makeDefaultSelectorCombinedFn = function(params)
 		return function()
 			if params and params.throw then error("render failed") end
-			return { kind = "ActionDescriptor", tooltip = sru.makeDefaultSelectorTooltips("REF") }
+			return builtin.ActionDescriptor{
+				children = { { kind = "HudIcons" }, sru.makeDefaultSelectorTooltips("REF") },
+				terrainCirclePolicy = "Never",
+			}
 		end
 	end
 	local files = {
@@ -160,7 +359,7 @@ local function newMods()
 		["/gui/main/engine_react_util.tl"] = engine_react_util,
 	}
 	local function ug(path) return assert(files[path], "unexpected require " .. path) end
-	return { ug = ug, sru = sru, react = react, baseTooltips = baseTooltips }
+	return { ug = ug, sru = sru, react = react, builtin = builtin, baseTooltips = baseTooltips }
 end
 
 local function freshMap()
@@ -169,11 +368,18 @@ local function freshMap()
 end
 
 -- render the plain map view and then its tooltip recipe
+local function findChild(node, kind)
+	for _, c in ipairs(node.children or {}) do
+		if c.kind == kind then return c end
+	end
+	return nil
+end
+
 local function renderTooltip(m, params)
 	local node = m.sru.makeDefaultSelectorCombinedFn(params or {})()
-	local tip = node.tooltip
-	eq(tip.kind, "ActionTooltip", "plain map view tooltip")
-	return tip.recipe(tip.param), tip
+	local tip = findChild(node, "ActionTooltip")
+	eq(tip and tip.kind, "ActionTooltip", "plain map view tooltip")
+	return tip.recipe(tip.param), tip, node
 end
 
 test("install wraps the plain map view, tooltip function is restored after render", function()
@@ -411,6 +617,295 @@ test("res file points at the install script", function()
 	eq(d.data.doReplaceFn, "CAT_Install")
 end)
 
+------------------------------------------------------------------------
+-- cat_map: measuring and the line
+------------------------------------------------------------------------
+
+_ = function(k)
+	return ({ cat_altitude = "標高", cat_height_difference = "高度差", cat_distance = "距離", cat_incline = "勾配" })[k] or k
+end
+
+-- one press-move cycle through the plain map view: each render samples
+-- the key and the cursor, as the engine's steps would
+local function renderAt(m, isHeld, p)
+	held, pos = isHeld, p
+	local out, _, node = renderTooltip(m)
+	return out, node
+end
+
+test("held and moved: altitude, height difference, distance, incline", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	local out = renderAt(m, true, { x = 0, y = 0, z = 10 })
+	eq(out.children[1].text, "標高: 10.0 m", "right after the press: altitude only")
+	out = renderAt(m, true, { x = 30, y = 40, z = 15 })
+	eq(out.children[1].text, "標高: 15.0 m\n高度差: +5.0 m\n距離: 50 m\n勾配: +10%")
+	out = renderAt(m, true, { x = 0.3, y = 0.3, z = 12 })
+	eq(out.children[1].text, "標高: 12.0 m", "back within 1 m: altitude only")
+end)
+
+test("released: usual tooltip, no line; next press measures from the new point", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	renderAt(m, true, { x = 0, y = 0, z = 10 })
+	local _, node = renderAt(m, true, { x = 100, y = 0, z = 0 })
+	assert(findChild(node, "LayerConfigNode"), "line while held")
+	local out
+	out, node = renderAt(m, false, { x = 100, y = 0, z = 0 })
+	eq(out.children[1].kind, "Default")
+	eq(findChild(node, "LayerConfigNode"), nil, "no line after release")
+	renderAt(m, true, { x = 100, y = 0, z = 0 })
+	out = renderAt(m, true, { x = 100, y = 10, z = -5 })
+	eq(out.children[1].text, "標高: -5.0 m\n高度差: -5.0 m\n距離: 10 m\n勾配: -50%")
+end)
+
+test("pressed over the sky: origin is where the cursor first meets terrain", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	hasPos = false
+	eq(renderAt(m, true, { x = 999, y = 999, z = 999 }).children[1].kind, "Default")
+	hasPos = true
+	eq(renderAt(m, true, { x = 0, y = 0, z = 20 }).children[1].text, "標高: 20.0 m")
+	eq(renderAt(m, true, { x = 0, y = 100, z = 30 }).children[1].text,
+		"標高: 30.0 m\n高度差: +10.0 m\n距離: 100 m\n勾配: +10%")
+end)
+
+test("measuring in feet when the game formatters are missing and imperial is set", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	api.util = { getAppConfig = function() return { distanceSpeedUnit = "I" } end }
+	api.type.enum = { DistanceSpeedUnit = { Metric = "M", Imperial = "I" } }
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	eq(renderAt(m, true, { x = 100, y = 0, z = 10 }).children[1].text,
+		"標高: 32.8 ft\n高度差: +32.8 ft\n距離: 328 ft\n勾配: +10%")
+end)
+
+test("the game's length and percent formatters are used", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	api.util.formatLength = function(v) return string.format("%.0f m*", v) end
+	api.util.toStringPercentPrecision = function(v, d) return string.format("%." .. d .. "f %%*", v * 100) end
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	eq(renderAt(m, true, { x = 0, y = 200, z = 4 }).children[1].text,
+		"標高: 4.0 m\n高度差: +4.0 m\n距離: 200 m*\n勾配: +2 %*")
+end)
+
+test("SHOW_INCLINE off: no incline line", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	core.SHOW_INCLINE = false
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	local ok, out = pcall(renderAt, m, true, { x = 0, y = 200, z = 4 })
+	core.SHOW_INCLINE = true
+	assert(ok, out)
+	eq(out.children[1].text, "標高: 4.0 m\n高度差: +4.0 m\n距離: 200 m")
+end)
+
+test("arrow: a LayerConfig child with one flow from origin to cursor, lifted", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	local _, node = renderAt(m, true, { x = 0.2, y = 0, z = 10 })
+	eq(findChild(node, "LayerConfigNode"), nil, "no line right after the press")
+	_, node = renderAt(m, true, { x = 50.4, y = -20, z = 14.6 })
+	local lc = assert(findChild(node, "LayerConfigNode"), "layer config child")
+	local flows = lc.config.cargoFlowRenderableConfig.flowData
+	eq(#flows, 1)
+	local f = flows[1]
+	eq(f.from.x, 0); eq(f.from.y, 0); eq(f.from.z, 10 + map.ARROW_LIFT)
+	eq(f.to.x, 50); eq(f.to.y, -20); eq(f.to.z, 15 + map.ARROW_LIFT)
+	eq(f.speed, map.ARROW_SPEED)
+	eq(f.cargoIconAlpha, 0)
+	eq(f.cargoTypes[1], 0, "passenger cargo type")
+	assert(#f.arrowColors >= 1, "colours")
+	-- the base children stay, in order, and the descriptor keeps its fields
+	eq(node.children[1].kind, "HudIcons")
+	eq(node.children[2].kind, "ActionTooltip")
+	eq(node.params.terrainCirclePolicy, "Never")
+	eq(m.builtin.ActionDescriptor ~= nil, true)
+end)
+
+test("arrow: the layer config is rebuilt only when an end moves a grid step", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	local built = 0
+	local orig = api.type.LayerConfig.new
+	api.type.LayerConfig.new = function() built = built + 1; return orig() end
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	local _, n1 = renderAt(m, true, { x = 40, y = 0, z = 0 })
+	local _, n2 = renderAt(m, true, { x = 40.3, y = 0.2, z = 0.1 })
+	eq(built, 1, "same snapped key")
+	eq(findChild(n1, "LayerConfigNode").config, findChild(n2, "LayerConfigNode").config)
+	renderAt(m, true, { x = 42, y = 0, z = 0 })
+	eq(built, 2)
+end)
+
+test("builtin.ActionDescriptor and the tooltip function are put back after each render", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	local baseAD = m.builtin.ActionDescriptor
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	renderAt(m, true, { x = 40, y = 0, z = 0 })
+	eq(m.builtin.ActionDescriptor, baseAD)
+	eq(m.sru.makeDefaultSelectorTooltips, m.baseTooltips)
+	-- also when the render throws while a line is shown
+	held, pos = true, { x = 80, y = 0, z = 0 }
+	local ok = pcall(function() m.sru.makeDefaultSelectorCombinedFn({ throw = true })() end)
+	eq(ok, false)
+	eq(m.builtin.ActionDescriptor, baseAD)
+	eq(m.sru.makeDefaultSelectorTooltips, m.baseTooltips)
+end)
+
+test("arrow: layer config API throwing keeps the altitude text, logs once", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	api.type.LayerConfig.new = function() error("restricted") end
+	local before = #logs
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	local out, node = renderAt(m, true, { x = 40, y = 0, z = 1.2 })
+	eq(out.children[1].text, "標高: 1.2 m\n高度差: +1.2 m\n距離: 40 m\n勾配: +3%")
+	eq(findChild(node, "LayerConfigNode"), nil)
+	renderAt(m, true, { x = 60, y = 0, z = 1 })
+	local n = 0
+	for i = before + 1, #logs do if logs[i]:find("arrow layer config failed", 1, true) then n = n + 1 end end
+	eq(n, 1)
+end)
+
+test("arrow: passenger type and colour table unreadable, still one arrow", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	api.res = nil
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	local _, node = renderAt(m, true, { x = 40, y = 0, z = 0 })
+	local f = findChild(node, "LayerConfigNode").config.cargoFlowRenderableConfig.flowData[1]
+	eq(#f.cargoTypes, 0)
+	eq(f.arrowColors[1][1], map.ARROW_FALLBACK_COLOR[1])
+end)
+
+test("line state hook failing: altitude still shows, one log line", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	m.react.onEvent = function() error("no ctx") end
+	local before = #logs
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	local out, node = renderAt(m, true, { x = 40, y = 0, z = 0 })
+	eq(out.children[1].text:sub(1, 13), "標高: 0.0 m")
+	eq(findChild(node, "LayerConfigNode"), nil)
+	local n = 0
+	for i = before + 1, #logs do if logs[i]:find("line state failed", 1, true) then n = n + 1 end end
+	eq(n, 1)
+end)
+
+test("LINE_MODE off: no line, text unchanged", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.LINE_MODE = "off"
+	map.install(m.ug)
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	local out, node = renderAt(m, true, { x = 40, y = 0, z = 0 })
+	eq(findChild(node, "LayerConfigNode"), nil)
+	eq(out.children[1].text, "標高: 0.0 m\n高度差: 0.0 m\n距離: 40 m\n勾配: 0%")
+	eq(#zoneCalls, 0)
+end)
+
+test("LINE_MODE zone: band drawn, moved, removed on release, cleared after a load", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.LINE_MODE = "zone"
+	map.install(m.ug)
+	renderAt(m, false, { x = 0, y = 0, z = 0 })
+	eq(zoneCalls[1][1], "remove", "first render after a load clears a saved band")
+	eq(zoneCalls[1][2], map.ZONE_KEY)
+	local n = #zoneCalls
+	renderAt(m, false, { x = 0, y = 0, z = 0 })
+	eq(#zoneCalls, n, "nothing drawn, nothing to remove again")
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	local _, node = renderAt(m, true, { x = 40, y = 0, z = 0 })
+	eq(findChild(node, "LayerConfigNode"), nil, "no arrow in zone mode")
+	local c = zoneCalls[#zoneCalls]
+	eq(c[1], "set"); eq(c[2], map.ZONE_KEY); eq(c[4], true); eq(c[5], false, "no building ban"); eq(c[6], false)
+	eq(#c[3], 4)
+	-- a rectangle ZONE_WIDTH wide around the segment
+	eq(c[3][1].x, 0); eq(c[3][1].y, map.ZONE_WIDTH / 2)
+	eq(c[3][3].x, 40); eq(c[3][3].y, -map.ZONE_WIDTH / 2)
+	n = #zoneCalls
+	renderAt(m, true, { x = 40.2, y = 0, z = 0 })
+	eq(#zoneCalls, n, "same snapped key: not drawn again")
+	renderAt(m, false, { x = 40, y = 0, z = 0 })
+	eq(zoneCalls[#zoneCalls][1], "remove", "release removes it")
+	-- the view going away while the key is down
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	renderAt(m, true, { x = 0, y = 30, z = 0 })
+	eq(zoneCalls[#zoneCalls][1], "set")
+	for _, fn in ipairs(m.react.unmounts) do fn() end
+	eq(zoneCalls[#zoneCalls][1], "remove", "unmount removes it")
+end)
+
+test("LINE_MODE zone: setZone throwing keeps the tooltip, logs once", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.LINE_MODE = "zone"
+	map.install(m.ug)
+	api.gui.mission.setZone = function() error("restricted") end
+	local before = #logs
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	eq(renderAt(m, true, { x = 40, y = 0, z = 0 }).children[1].kind, "TextView")
+	renderAt(m, true, { x = 80, y = 0, z = 0 })
+	local n = 0
+	for i = before + 1, #logs do if logs[i]:find("setZone failed", 1, true) then n = n + 1 end end
+	eq(n, 1)
+end)
+
+test("test event: holds the key at given points without a key or mouse", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	held, hasPos = false, false
+	renderTooltip(m)
+	local ev = assert(m.react.events[map.TEST_EVENT], "event registered on the map view")
+	ev(map.TEST_EVENT, { hold = true, cursor = { x = 0, y = 0, z = 10 } })
+	eq(renderTooltip(m).children[1].text, "標高: 10.0 m")
+	ev(map.TEST_EVENT, { hold = true, cursor = { 30, 40, 15 } })
+	local out, _, node = renderTooltip(m)
+	eq(out.children[1].text, "標高: 15.0 m\n高度差: +5.0 m\n距離: 50 m\n勾配: +10%")
+	assert(findChild(node, "LayerConfigNode"), "arrow")
+	local before = #logs
+	ev(map.TEST_EVENT, { report = true })
+	eq(#logs, before + 1)
+	assert(logs[#logs]:find("held=true origin=0.0,0.0,10.0 line=0,0,10,30,40,15 arrow=true", 1, true), logs[#logs])
+	assert(logs[#logs]:find("勾配: +10%", 1, true), "text in the report")
+	ev(map.TEST_EVENT, { hold = false })
+	eq(map.testInput, nil)
+	out, _, node = renderTooltip(m)
+	eq(out.children[1].kind, "Default", "real key (not held) again")
+	eq(findChild(node, "LayerConfigNode"), nil)
+	-- junk params clear the test input rather than throw
+	ev(map.TEST_EVENT, { hold = true })
+	ev(map.TEST_EVENT, "junk")
+	eq(map.testInput, nil)
+end)
+
+test("test event: hold without cursor uses the real mouse", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	renderTooltip(m)
+	m.react.events[map.TEST_EVENT](map.TEST_EVENT, { hold = true })
+	pos = { x = 1, y = 1, z = 33 }
+	eq(renderTooltip(m).children[1].text, "標高: 33.0 m")
+end)
+
 -- a small JSON decoder (objects, arrays, strings with escapes, numbers,
 -- true/false/null): enough for strings.json and _metadata/modinfo.json,
 -- whose keys contain spaces and escaped quotes
@@ -576,18 +1071,37 @@ test("modinfo description: every language, each naming the official key", functi
 	assert(info.summary:find("Surface Snapping", 1, true) and info.summary:find("地表スナップ", 1, true), "summary names the key")
 end)
 
--- strings.json: only the tooltip label, in every game language
+-- strings.json: only the tooltip labels, in every game language
 -- (base/strings/<lang>); the game reads no other key from it
-test("strings.json: the label in every game language, nothing else", function()
+local LABEL_KEYS = { "cat_altitude", "cat_height_difference", "cat_distance", "cat_incline" }
+test("strings.json: the labels in every game language, nothing else", function()
 	local langs = readJson("strings.json")
-	local known = {}
+	local known, wanted = {}, {}
+	for _, k in ipairs(LABEL_KEYS) do wanted[k] = true end
 	for _, lang in ipairs(GAME_LANGS) do
 		known[lang] = true
 		local t = assert(langs[lang], "missing language " .. lang)
-		assert(type(t.cat_altitude) == "string" and t.cat_altitude ~= "", lang .. " lacks cat_altitude")
-		for k in pairs(t) do eq(k, "cat_altitude", lang .. " unused key") end
+		for _, k in ipairs(LABEL_KEYS) do
+			assert(type(t[k]) == "string" and t[k] ~= "", lang .. " lacks " .. k)
+		end
+		for k in pairs(t) do assert(wanted[k], lang .. " unused key " .. k) end
 	end
 	for lang in pairs(langs) do assert(known[lang], "unknown language " .. lang) end
+end)
+
+-- every label key the code asks _() for is in strings.json (a typo would
+-- show the English fallback in every language)
+test("cat_map asks only for keys strings.json has", function()
+	local f = assert(io.open(root .. "/content/gui/cat_map.lua"))
+	local src = f:read("*a")
+	f:close()
+	local en = readJson("strings.json").en
+	local n = 0
+	for k in src:gmatch('core%.label%(_, "([%w_]+)"') do
+		n = n + 1
+		assert(en[k], "missing key " .. k)
+	end
+	eq(n, #LABEL_KEYS, "label lookups")
 end)
 
 -- the game resolves "<modId>::/..." paths by mod.json's modId and loads the

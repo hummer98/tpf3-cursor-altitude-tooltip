@@ -1,41 +1,80 @@
 {
 	"en": {
-		"cat_altitude": "Altitude"
+		"cat_altitude": "Altitude",
+		"cat_height_difference": "Height difference",
+		"cat_distance": "Distance",
+		"cat_incline": "Incline"
 	},
 	"ja": {
-		"cat_altitude": "標高"
+		"cat_altitude": "標高",
+		"cat_height_difference": "高度差",
+		"cat_distance": "距離",
+		"cat_incline": "勾配"
 	},
 	"de": {
-		"cat_altitude": "Höhe"
+		"cat_altitude": "Höhe",
+		"cat_height_difference": "Höhenunterschied",
+		"cat_distance": "Entfernung",
+		"cat_incline": "Steigung"
 	},
 	"es": {
-		"cat_altitude": "Altitud"
+		"cat_altitude": "Altitud",
+		"cat_height_difference": "Desnivel",
+		"cat_distance": "Distancia",
+		"cat_incline": "Inclinación"
 	},
 	"fr": {
-		"cat_altitude": "Altitude"
+		"cat_altitude": "Altitude",
+		"cat_height_difference": "Dénivelé",
+		"cat_distance": "Distance",
+		"cat_incline": "Inclinaison"
 	},
 	"it": {
-		"cat_altitude": "Altitudine"
+		"cat_altitude": "Altitudine",
+		"cat_height_difference": "Dislivello",
+		"cat_distance": "Distanza",
+		"cat_incline": "Pendenza"
 	},
 	"ko": {
-		"cat_altitude": "고도"
+		"cat_altitude": "고도",
+		"cat_height_difference": "고도 차",
+		"cat_distance": "거리",
+		"cat_incline": "경사"
 	},
 	"nl": {
-		"cat_altitude": "Hoogte"
+		"cat_altitude": "Hoogte",
+		"cat_height_difference": "Hoogteverschil",
+		"cat_distance": "Afstand",
+		"cat_incline": "Helling"
 	},
 	"pl": {
-		"cat_altitude": "Wysokość"
+		"cat_altitude": "Wysokość",
+		"cat_height_difference": "Różnica wysokości",
+		"cat_distance": "Odległość",
+		"cat_incline": "Pochyłość"
 	},
 	"pt_BR": {
-		"cat_altitude": "Altitude"
+		"cat_altitude": "Altitude",
+		"cat_height_difference": "Desnível",
+		"cat_distance": "Distância",
+		"cat_incline": "Inclinação"
 	},
 	"ru": {
-		"cat_altitude": "Высота"
+		"cat_altitude": "Высота",
+		"cat_height_difference": "Перепад высот",
+		"cat_distance": "Расстояние",
+		"cat_incline": "Наклон"
 	},
 	"zh_CN": {
-		"cat_altitude": "海拔"
+		"cat_altitude": "海拔",
+		"cat_height_difference": "高差",
+		"cat_distance": "距离",
+		"cat_incline": "坡度"
 	},
 	"zh_TW": {
-		"cat_altitude": "海拔"
+		"cat_altitude": "海拔",
+		"cat_height_difference": "高差",
+		"cat_distance": "距離",
+		"cat_incline": "坡度"
 	}
 }
