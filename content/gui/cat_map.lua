@@ -261,7 +261,7 @@ function map.drawZone(key)
 	end
 	if zoneDrawn ~= "unknown" and zoneDrawn ~= false and sameKey(key, zoneDrawn) then return end
 	local poly = map.ribbon(key, map.ZONE_WIDTH)
-	if not poly then return end
+	if not poly then return map.drawZone(nil) end
 	local ok, err = pcall(function()
 		local pts = {}
 		for i, p in ipairs(poly) do pts[i] = api.type.Vec2f.new(p[1], p[2]) end
@@ -388,10 +388,15 @@ function map.wrapCombinedFn(original, sru, mods)
 			local baseAD = builtin.ActionDescriptor
 			if layer then
 				local added = false
-				builtin.ActionDescriptor = function(p)
+				builtin.ActionDescriptor = function(p, ...)
 					-- once: only the view's own descriptor, not one a chained
-					-- wrap might build
-					if not added and type(p) == "table" then
+					-- wrap might build; and only when called as (params), the
+					-- builtin also takes (ref, params), passed through untouched
+					-- (as Station Coverage Filter's same swap does)
+					if added or select("#", ...) > 0 or type(p) ~= "table" then
+						return baseAD(p, ...)
+					end
+					do
 						added = true
 						local okL, node = pcall(builtin.LayerConfig, { config = layer })
 						if okL then
@@ -448,6 +453,8 @@ function map.install(ug)
 	zoneDrawn = "unknown"
 	lastArrow.key, lastArrow.config = nil, nil
 	map.testInput = nil
+	-- no origin carried over from the last game
+	map.tracker = core.newTracker()
 	wrapped = map.wrapCombinedFn(current, sru, mods)
 	sru.makeDefaultSelectorCombinedFn = wrapped
 end

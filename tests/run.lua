@@ -255,6 +255,15 @@ test("lineKey: snapped end points", function()
 	eq(k[4], 7)
 end)
 
+test("lineKey: no zero-length line after snapping; far cursor snaps coarser", function()
+	-- 1.4 m apart, both snap to (1, 1)
+	eq(core.lineKey({ x = 0.5, y = 0.5, z = 0 }, { x = 1.49, y = 1.49, z = 0 }, 1), nil)
+	-- 2 km away: the cursor end moves in 20 m steps, the origin stays on 1 m
+	local k = core.lineKey({ x = 0.4, y = 0, z = 0 }, { x = 2009, y = 0, z = 3.4 }, 1)
+	eq(table.concat(k, ","), "0,0,0,2000,0,3")
+	eq(table.concat(core.lineKey({ x = 0.4, y = 0, z = 0 }, { x = 2001, y = 0, z = 3.4 }, 1), ","), "0,0,0,2000,0,3")
+end)
+
 ------------------------------------------------------------------------
 -- cat_map with stubbed GUI modules
 ------------------------------------------------------------------------
@@ -904,6 +913,111 @@ test("test event: hold without cursor uses the real mouse", function()
 	m.react.events[map.TEST_EVENT](map.TEST_EVENT, { hold = true })
 	pos = { x = 1, y = 1, z = 33 }
 	eq(renderTooltip(m).children[1].text, "標高: 33.0 m")
+end)
+
+test("swapped ActionDescriptor passes a (ref, params) call through untouched", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	local seen
+	local base = m.sru.makeDefaultSelectorCombinedFn
+	-- an inner wrap that builds a descriptor the other way first
+	m.sru.makeDefaultSelectorCombinedFn = function(p)
+		local inner = base(p)
+		return function()
+			seen = { m.builtin.ActionDescriptor("REF", { children = { "x" } }) }
+			return inner()
+		end
+	end
+	local realAD = m.builtin.ActionDescriptor
+	local calls = {}
+	m.builtin.ActionDescriptor = function(a, b)
+		calls[#calls + 1] = { a, b }
+		if b ~= nil then return { kind = "AD2", ref = a, params = b } end
+		return realAD(a)
+	end
+	map.install(m.ug)
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	local _, node = renderAt(m, true, { x = 40, y = 0, z = 0 })
+	eq(seen[1].kind, "AD2")
+	eq(seen[1].ref, "REF")
+	eq(#seen[1].params.children, 1, "no layer added to the two-argument call")
+	assert(findChild(node, "LayerConfigNode"), "the view's own descriptor got it")
+end)
+
+-- a Station Coverage Filter style wrap: swaps ActionDescriptor itself to add
+-- its own LayerConfig (scf_map.lua withFill)
+local function scfWrap(m)
+	local base = m.sru.makeDefaultSelectorCombinedFn
+	m.sru.makeDefaultSelectorCombinedFn = function(p)
+		local inner = base(p)
+		return function()
+			local b = m.builtin.ActionDescriptor
+			m.builtin.ActionDescriptor = function(q, ...)
+				if select("#", ...) == 0 and type(q) == "table" then
+					local c = {}
+					for k, v in pairs(q) do c[k] = v end
+					local ch = {}
+					for i, x in ipairs(q.children or {}) do ch[i] = x end
+					ch[#ch + 1] = { kind = "LayerConfigNode", config = "SCF" }
+					c.children = ch
+					return b(c)
+				end
+				return b(q, ...)
+			end
+			local ok, n = pcall(inner)
+			m.builtin.ActionDescriptor = b
+			if not ok then error(n, 0) end
+			return n
+		end
+	end
+end
+
+local function layerConfigs(node)
+	local out = {}
+	for _, c in ipairs(node.children) do
+		if c.kind == "LayerConfigNode" then out[#out + 1] = c.config == "SCF" and "SCF" or "CAT" end
+	end
+	table.sort(out)
+	return table.concat(out, ",")
+end
+
+test("chains with a wrap that adds its own LayerConfig, either order", function()
+	for _, scfFirst in ipairs({ true, false }) do
+		resetApi()
+		local map, m = freshMap(), newMods()
+		local realAD = m.builtin.ActionDescriptor
+		if scfFirst then scfWrap(m); map.install(m.ug) else map.install(m.ug); scfWrap(m) end
+		renderAt(m, true, { x = 0, y = 0, z = 0 })
+		local _, node = renderAt(m, true, { x = 40, y = 0, z = 0 })
+		eq(layerConfigs(node), "CAT,SCF", "both kept (scfFirst " .. tostring(scfFirst) .. ")")
+		eq(m.builtin.ActionDescriptor, realAD, "put back")
+		_, node = renderAt(m, false, { x = 40, y = 0, z = 0 })
+		eq(layerConfigs(node), "SCF", "only theirs after release")
+	end
+end)
+
+test("cat_map: a gap in the steps (view not stepping) drops the origin", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	local now = 100
+	api.util.getApplicationTime = function() return now end
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	now = 101
+	eq(renderAt(m, true, { x = 40, y = 0, z = 0 }).children[1].text:find("距離", 1, true) ~= nil, true)
+	now = 101 + core.STALE_SECONDS + 1
+	eq(renderAt(m, true, { x = 40, y = 0, z = 0 }).children[1].text, "標高: 0.0 m", "new origin here")
+end)
+
+test("next game load drops a held origin", function()
+	resetApi()
+	local map = freshMap()
+	local m1, m2 = newMods(), newMods()
+	map.install(m1.ug)
+	renderAt(m1, true, { x = 0, y = 0, z = 0 })
+	map.install(m2.ug)
+	eq(map.tracker.origin, nil)
+	eq(renderAt(m2, true, { x = 40, y = 0, z = 0 }).children[1].text, "標高: 0.0 m")
 end)
 
 -- a small JSON decoder (objects, arrays, strings with escapes, numbers,

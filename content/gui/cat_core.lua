@@ -106,7 +106,9 @@ end
 -- view steps; after a gap longer than STALE_SECONDS (a tool or window was on
 -- top meanwhile) the key may have been released and pressed again unseen, so
 -- the old origin is dropped and this counts as a new press.
-M.STALE_SECONDS = 2.0
+-- (5 s, not less: an autosave can freeze the frames for a few seconds in the
+-- middle of a measurement, and that must not move the origin)
+M.STALE_SECONDS = 5.0
 
 function M.newTracker()
 	local t = { held = false, origin = nil, last = nil }
@@ -213,16 +215,27 @@ function M.measureLines(origin, pos, labels, fmts, imperial, showIncline)
 	return lines
 end
 
--- The line's end points snapped to `grid` metres, or nil when nothing is to
--- be drawn. The snapped table is what the map view's step state compares, so
--- the action (and its layer config) is rebuilt only when an end moves by a
--- grid step, not on every frame.
+-- the cursor end snaps to this share of the distance when that is coarser
+-- than the grid: zoomed out, the cursor moves tens of metres a frame, and a
+-- 1 m grid would rebuild the map view's action on every frame
+M.LINE_GRID_RATIO = 0.01
+
+-- The line's end points snapped to `grid` metres (the cursor end coarser
+-- with the distance), or nil when nothing is to be drawn. The snapped table
+-- is what the map view's step state compares, so the action (and its layer
+-- config) is rebuilt only when an end moves by a step, not on every frame.
 function M.lineKey(origin, pos, grid)
-	if not M.measure(origin, pos) then return nil end
+	local m = M.measure(origin, pos)
+	if not m then return nil end
 	grid = (isNumber(grid) and grid > 0) and grid or 1
-	local function snap(v) return math.floor(v / grid + 0.5) * grid end
+	-- a whole number of grid steps, so the snapped values stay round
+	local far = math.max(grid, grid * math.floor(m.dist * M.LINE_GRID_RATIO / grid + 0.5))
+	local function snap(v, g) return math.floor(v / g + 0.5) * g end
 	local a, b = M.copyPos(origin), M.copyPos(pos)
-	return { snap(a.x), snap(a.y), snap(a.z), snap(b.x), snap(b.y), snap(b.z) }
+	local key = { snap(a.x, grid), snap(a.y, grid), snap(a.z, grid), snap(b.x, far), snap(b.y, far), snap(b.z, grid) }
+	-- two points over 1 m apart can still snap to one: no zero-length line
+	if key[1] == key[4] and key[2] == key[5] then return nil end
+	return key
 end
 
 return M
