@@ -23,7 +23,7 @@ you build it.
 - Follows the game's unit setting (metres / feet).
 - Follows your key binding: whatever key you bind to "Surface Snapping" in
   the game's key bindings is the key that shows the altitude.
-- The tooltip label is translated into all 13 languages of the game, and the mod description has a section for each.
+- The tooltip labels are translated into all 13 languages of the game, and the mod description has a section for each.
 
 ## Where it shows, and where it doesn't
 
