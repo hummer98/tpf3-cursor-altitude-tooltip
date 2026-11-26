@@ -8,6 +8,8 @@ recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-27
+
 ### Added
 - Keep holding the key and move the mouse: the tooltip adds the signed
   height difference, the horizontal distance and the incline (%) between
