@@ -1,11 +1,25 @@
 # Changelog
 
-All notable changes to Cursor Altitude Tooltip are recorded here. The
-format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
-the mod uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The
-mod's `revision` in `mod.json` is MAJOR * 10000 + MINOR * 100 + PATCH.
+All notable changes to Cursor Altitude, Distance & Incline Tooltip are
+recorded here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the mod uses
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html). The mod's
+`revision` in `mod.json` is MAJOR * 10000 + MINOR * 100 + PATCH.
 
 ## [Unreleased]
+
+### Added
+- Keep holding the key and move the mouse: the tooltip adds the signed
+  height difference, the horizontal distance and the incline (%) between
+  the point where the key went down and the cursor, and a line joins the
+  two points. Within 1 m of that point only the altitude shows. Release the
+  key and everything disappears; nothing is saved in the savegame.
+- Distances follow the game's unit setting, like the altitude.
+
+### Changed
+- The mod is renamed "Cursor Altitude, Distance & Incline Tooltip"
+  (Japanese: 「カーソル位置の標高・距離・勾配の表示」), and the summary and
+  the description in every language describe the new measuring.
 
 ## [1.0.1] - 2026-11-22
 

@@ -1,4 +1,5 @@
--- Cursor Altitude Tooltip: swaps the plain map view's cursor tooltip.
+-- Cursor Altitude, Distance & Incline Tooltip: swaps the plain map view's
+-- cursor tooltip.
 --
 -- Why this way: the plain map view (no tool, layer or entity window) is the
 -- action selector_react_util.makeDefaultSelectorCombinedFn builds; on every

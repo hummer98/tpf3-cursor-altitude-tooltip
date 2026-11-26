@@ -1,14 +1,25 @@
-# Cursor Altitude Tooltip (Transport Fever 3)
+# Cursor Altitude, Distance & Incline Tooltip (Transport Fever 3)
 
 [日本語は下にあります](#日本語)
 
+![Cover](_metadata/0.png)
+
 Hold the **Surface Snapping** key (Alt by default) on the plain map view and
 the cursor tooltip shows the altitude of the terrain under the mouse, instead
-of the usual name tooltip. Release the key and the usual tooltip comes back.
+of the usual name tooltip. Keep holding the key and move the mouse: the
+tooltip adds the height difference (signed), the horizontal distance and the
+incline (%) between the point where you pressed the key and the cursor, and
+a line connects the two points. Release the key and everything disappears.
+
+Useful to check whether a road or track will fit between two places before
+you build it.
 
 ## Features
 
 - Altitude of the terrain under the mouse cursor, one decimal.
+- While the key stays down: height difference (signed), horizontal distance
+  and incline (whole percent) from where you pressed the key, and a line
+  between the two points. Within 1 m of that point only the altitude shows.
 - Follows the game's unit setting (metres / feet).
 - Follows your key binding: whatever key you bind to "Surface Snapping" in
   the game's key bindings is the key that shows the altitude.
@@ -26,8 +37,8 @@ of the usual name tooltip. Release the key and the usual tooltip comes back.
 
 ## Compatibility
 
-- GUI only: it changes no save data, so it can be added to or removed from a
-  running save at any time.
+- GUI only: nothing is saved in your savegame, so it can be added to or
+  removed from a running save at any time.
 - Works alongside other mods that wrap the same map-view function (both
   wraps chain).
 
@@ -94,15 +105,21 @@ upload would then create a second mod.io page. Tool tests: `python3 -m unittest 
 
 ## 日本語
 
-# カーソル位置の標高表示（Transport Fever 3）
+# カーソル位置の標高・距離・勾配の表示（Transport Fever 3）
+
+![扉絵](docs/images/cover_ja.png)
 
 通常の地図画面で **「地表スナップ」キー**（初期設定は Alt）を押している間、
 マウスのヒントに、通常の名前表示の代わりにカーソル位置の地形の標高を表示します。
-キーを離すと通常のヒントに戻ります。
+キーを押したままマウスを動かすと、押し始めた地点からカーソルまでの高度差（符号つき）・水平の距離・勾配（%）を足して表示し、2 点の間に線を引きます。
+キーを離すと、すべて消えます。
+
+道路や線路を引く前に、2 地点の間に収まるかを見るのに使えます。
 
 ### 機能
 
 - マウスカーソル下の地形の標高を小数1桁で表示します。
+- キーを押している間、押し始めた地点からの高度差（符号つき）・水平の距離・勾配（整数の %）を表示し、2 点の間に線を引きます。押し始めた地点から 1 m 以内では、標高だけを表示します。
 - ゲームの単位設定（メートル／フィート）に従います。
 - キー割り当てに従います。ゲームのキー設定で「地表スナップ」に割り当てたキーで表示されます。
 - ツールチップのラベルはゲームの全13言語に翻訳済みで、Modの説明文も言語ごとの段落があります。
@@ -115,7 +132,7 @@ upload would then create a second mod.io page. Tool tests: `python3 -m unittest 
 
 ### 互換性
 
-- GUI だけの Mod で、セーブデータを変更しません。プレイ中のセーブにいつでも追加・削除できます。
+- GUI だけの Mod で、セーブデータには何も残しません。プレイ中のセーブにいつでも追加・削除できます。
 - 同じ地図画面の関数を差し替える他の Mod とも併用できます（差し替えが連鎖します）。
 
 ### 導入

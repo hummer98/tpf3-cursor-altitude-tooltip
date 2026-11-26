@@ -1,4 +1,5 @@
--- Cursor Altitude Tooltip: the replacement-config hook (cat_install.res.lua).
+-- Cursor Altitude, Distance & Incline Tooltip: the replacement-config hook
+-- (cat_install.res.lua).
 -- A failure leaves the plain map view as it was and logs one line.
 local map = require "hummer_cursor_altitude_tooltip::/gui/cat_map.lua"
 

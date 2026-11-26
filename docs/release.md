@@ -47,7 +47,7 @@ python3 tools/release.py --github-only        # HEAD のタグの push と GitHu
 2. `VERSION`・`mod.json` の revision・`CHANGELOG.md` を書き、`tools/package.py` と同じ確認（JSON、表紙、Lua のテスト、道具のテスト）をする。落ちたら書いたファイルを全部戻して止まる。
 3. コミット `Release vX.Y.Z` と、注釈付きタグ `vX.Y.Z`。
 4. `dist/hummer_cursor_altitude_tooltip-vX.Y.Z.zip`（`tools/package.py` と同じ中身。直下にファイル）。
-5. リモート `github`（`--remote` で変更）があれば: `git push github HEAD:refs/heads/master`、`git push github refs/tags/vX.Y.Z`、`gh release create vX.Y.Z <zip> --verify-tag --repo <owner/name> --title "Cursor Altitude Tooltip vX.Y.Z" --notes <その版の節>`。
+5. リモート `github`（`--remote` で変更）があれば: `git push github HEAD:refs/heads/master`、`git push github refs/tags/vX.Y.Z`、`gh release create vX.Y.Z <zip> --verify-tag --repo <owner/name> --title "Cursor Altitude, Distance & Incline Tooltip vX.Y.Z" --notes <その版の節>`。
    - 既定が `origin` でないのは、開発用の clone の `origin` が `local/mods/` のコピーを指しているため。
    - push するのはその版のタグだけ。`git push --tags` は使わない（古い履歴のタグを出さないため）。
    - リモートが無いとき、または `--local-only` のときは、zip まで作って止まり、しなかったコマンドを出す。あとで HEAD がタグのコミットにある状態で `--github-only` を走らせると、zip を作り直してタグの push と release だけをする。

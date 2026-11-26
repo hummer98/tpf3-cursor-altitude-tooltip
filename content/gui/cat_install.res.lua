@@ -1,5 +1,6 @@
--- Cursor Altitude Tooltip: wraps the plain map view's action at UI bootstrap
--- so its cursor tooltip can show the altitude (cat_map.lua).
+-- Cursor Altitude, Distance & Incline Tooltip: wraps the plain map view's
+-- action at UI bootstrap so its cursor tooltip can show the altitude
+-- (cat_map.lua).
 function data()
 	return {
 		type = "react-replacement-config",

@@ -1,4 +1,5 @@
--- Offline tests for Cursor Altitude Tooltip. Run from anywhere:
+-- Offline tests for Cursor Altitude, Distance & Incline Tooltip. Run from
+-- anywhere:
 --   luajit tests/run.lua
 -- The game globals the scripts use (api, ug_require, _, debugPrint) and the
 -- GUI modules (react, builtin, ...) are stubbed with just enough behaviour.
@@ -1128,7 +1129,7 @@ test("_metadata/modinfo.json: readable name, summary, author, tag", function()
 	for k in pairs(info) do keys[#keys + 1] = k end
 	table.sort(keys)
 	eq(table.concat(keys, ","), "authors,description,name,summary,tags,url")
-	eq(info.name, "Cursor Altitude Tooltip")
+	eq(info.name, "Cursor Altitude, Distance & Incline Tooltip")
 	assert(not info.name:find("[\128-\255]"), "name is English (ASCII) only")
 	-- mod.io limits: name 50 characters, summary 250 (counted in characters)
 	-- characters, not bytes: count the bytes that start a UTF-8 sequence
@@ -1136,6 +1137,9 @@ test("_metadata/modinfo.json: readable name, summary, author, tag", function()
 	eq(chars("標高 m"), 4, "UTF-8 character count")
 	assert(chars(info.name) <= 50, "name too long for mod.io")
 	assert(chars(info.summary) <= 250, "summary too long for mod.io")
+	-- and 250 in bytes too: whether mod.io counts characters or UTF-8 bytes
+	-- is untested, and the Japanese half takes 3 bytes a character
+	assert(#info.summary <= 250, "summary over 250 bytes: " .. #info.summary)
 	assert(chars(info.description) <= 50000, "description too long for mod.io")
 	eq(info.authors[1].name, "hummer")
 	eq(info.authors[1].role, "CREATOR")
@@ -1182,7 +1186,16 @@ test("modinfo description: every language, each naming the official key", functi
 	-- LICENSE can't ship in the mod (validation rejects extensionless files),
 	-- so the description states the licence and where the code is
 	assert(found[1].text:find("License: MIT", 1, true) and found[1].text:find("github.com/hummer98/tpf3-cursor-altitude-tooltip", 1, true), "licence and source link")
-	assert(info.summary:find("Surface Snapping", 1, true) and info.summary:find("地表スナップ", 1, true), "summary names the key")
+	-- the English and Japanese sections open with the mod's name in that
+	-- language (the game shows one name, English; Japanese players find it
+	-- here and in the summary)
+	eq(found[1].text:match("^%[[^%]]+%] ([^\n]+)"), info.name, "English heading")
+	eq(found[2].text:match("^%[[^%]]+%] ([^\n]+)"), "カーソル位置の標高・距離・勾配の表示", "Japanese heading")
+	-- the summary is short, so it names the default key (Alt) in both halves
+	local en, ja = info.summary:match("^(.-) / (.+)$")
+	assert(en and ja, "summary is \"<English> / <Japanese>\"")
+	assert(en:find("Alt", 1, true) and ja:find("Alt", 1, true), "summary names the key")
+	assert(ja:find("[\128-\255]"), "summary's second half is Japanese")
 end)
 
 -- strings.json: only the tooltip labels, in every game language

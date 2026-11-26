@@ -426,7 +426,7 @@ class FlowTest(unittest.TestCase):
         self.assertEqual(gh[gh.index("--notes") + 1],
                          "### Added\n- New thing.\n\n### Fixed\n- Old bug.")
         self.assertEqual(gh[gh.index("--title") + 1],
-                         "Cursor Altitude Tooltip v0.9.0")
+                         "Cursor Altitude, Distance & Incline Tooltip v0.9.0")
         self.assertEqual(self.git("tag", "--list", root=bare).split(),
                          ["v0.9.0"])
         self.assertEqual(self.git("rev-parse", "master", root=bare),
