@@ -8,6 +8,8 @@ recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-27
+
 ### Fixed
 - The game could exit with an error right after you pressed the key and
   started to move the mouse (also when the key was still held as you left
