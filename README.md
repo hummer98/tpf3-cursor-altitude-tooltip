@@ -19,7 +19,8 @@ you build it.
 - Altitude of the terrain under the mouse cursor, one decimal.
 - While the key stays down: height difference (signed), horizontal distance
   and incline (whole percent) from where you pressed the key, and a line
-  between the two points. Within 1 m of that point only the altitude shows.
+  between the two points. Within 1 m of that point only the altitude shows;
+  the line appears from 24 m.
 - Follows the game's unit setting (metres / feet).
 - Follows your key binding: whatever key you bind to "Surface Snapping" in
   the game's key bindings is the key that shows the altitude.
@@ -119,7 +120,7 @@ upload would then create a second mod.io page. Tool tests: `python3 -m unittest 
 ### 機能
 
 - マウスカーソル下の地形の標高を小数1桁で表示します。
-- キーを押している間、押し始めた地点からの高度差（符号つき）・水平の距離・勾配（整数の %）を表示し、2 点の間に線を引きます。押し始めた地点から 1 m 以内では、標高だけを表示します。
+- キーを押している間、押し始めた地点からの高度差（符号つき）・水平の距離・勾配（整数の %）を表示し、2 点の間に線を引きます。押し始めた地点から 1 m 以内では、標高だけを表示します。線は 24 m から出ます。
 - ゲームの単位設定（メートル／フィート）に従います。
 - キー割り当てに従います。ゲームのキー設定で「地表スナップ」に割り当てたキーで表示されます。
 - ツールチップのラベルはゲームの全13言語に翻訳済みで、Modの説明文も言語ごとの段落があります。

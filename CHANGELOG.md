@@ -8,6 +8,12 @@ recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- The game could exit with an error right after you pressed the key and
+  started to move the mouse (also when the key was still held as you left
+  a construction tool). The line now appears only from 24 m; the tooltip
+  measures from 1 m as before.
+
 ## [1.1.0] - 2026-11-27
 
 ### Added

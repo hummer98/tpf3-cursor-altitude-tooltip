@@ -50,8 +50,16 @@ map.LINE_GRID = 1.0
 map.ARROW_LIFT = 3.0
 -- 40 is the base speed of a flow that carries cargo
 map.ARROW_SPEED = 40.0
--- no cargo icon on our arrow (the field wants a cargo type; see makeArrowConfig)
+-- no cargo icon on our arrow (no cargo type either; see makeArrowConfig)
 map.ARROW_ICON_ALPHA = 0.0
+-- No arrow shorter than this (metres, 3D, end to end). The engine samples a
+-- flow every 8 m (8 * ceil(sqrt(length / 64)), at most 48 m) and drops the
+-- first sample while the arrow animates, so an arrow under 16 m can have a
+-- single point; its cargo icon pass (render_util.cpp AddEveryNthPoint)
+-- asserts on that and the game exits (1.1.0, the first metres of every
+-- measurement). From 24 m there are at least 3 points. The base only draws
+-- flows between industries and towns, never this short.
+map.ARROW_MIN_LENGTH = 24.0
 -- used only when the base colour table can't be read
 map.ARROW_FALLBACK_COLOR = { 0.54, 0.72, 0.95, 1.0 }
 map.ZONE_KEY = "hummer_cat_measure_line"
@@ -203,7 +211,16 @@ local function sameKey(a, b)
 	return true
 end
 
+-- true when the engine can draw the key as an arrow (ARROW_MIN_LENGTH)
+function map.arrowLongEnough(key)
+	if type(key) ~= "table" then return false end
+	local dx, dy, dz = key[4] - key[1], key[5] - key[2], key[6] - key[3]
+	local len = math.sqrt(dx * dx + dy * dy + dz * dz)
+	return len == len and len >= map.ARROW_MIN_LENGTH
+end
+
 function map.makeArrowConfig(key)
+	if not map.arrowLongEnough(key) then return nil end
 	if sameKey(key, lastArrow.key) then return lastArrow.config end
 	local ok, cfg = pcall(function()
 		local T = api.type
@@ -213,10 +230,10 @@ function map.makeArrowConfig(key)
 		flow.speed = map.ARROW_SPEED
 		flow.arrowColors = arrowColors()
 		flow.cargoIconAlpha = map.ARROW_ICON_ALPHA
-		-- every base flow names a cargo; an empty list is untried, so the
-		-- passenger type (always there) with its icon made invisible
-		local okP, pax = pcall(function() return api.res.cargoTypeRep.getPassengerCargoTypeId() end)
-		flow.cargoTypes = (okP and type(pax) == "number") and { pax } or {}
+		-- no cargo type: the engine runs its icon pass (the one that asserts
+		-- on a short path) once per cargo type and skips it for none; the
+		-- icon was invisible anyway (1.1.0 named the passenger type)
+		flow.cargoTypes = {}
 		local flows = T.LayerConfig.CargoFlowRenderableConfig.new()
 		flows.flowData = { flow }
 		local layer = T.LayerConfig.new()

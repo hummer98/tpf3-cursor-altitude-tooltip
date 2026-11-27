@@ -732,7 +732,7 @@ test("arrow: a LayerConfig child with one flow from origin to cursor, lifted", f
 	eq(f.to.x, 50); eq(f.to.y, -20); eq(f.to.z, 15 + map.ARROW_LIFT)
 	eq(f.speed, map.ARROW_SPEED)
 	eq(f.cargoIconAlpha, 0)
-	eq(f.cargoTypes[1], 0, "passenger cargo type")
+	eq(#f.cargoTypes, 0, "no cargo type: the engine's icon pass never runs")
 	assert(#f.arrowColors >= 1, "colours")
 	-- the base children stay, in order, and the descriptor keeps its fields
 	eq(node.children[1].kind, "HudIcons")
@@ -790,7 +790,7 @@ test("arrow: layer config API throwing keeps the altitude text, logs once", func
 	eq(n, 1)
 end)
 
-test("arrow: passenger type and colour table unreadable, still one arrow", function()
+test("arrow: colour table unreadable, still one arrow", function()
 	resetApi()
 	local map, m = freshMap(), newMods()
 	map.install(m.ug)
@@ -800,6 +800,78 @@ test("arrow: passenger type and colour table unreadable, still one arrow", funct
 	local f = findChild(node, "LayerConfigNode").config.cargoFlowRenderableConfig.flowData[1]
 	eq(#f.cargoTypes, 0)
 	eq(f.arrowColors[1][1], map.ARROW_FALLBACK_COLOR[1])
+end)
+
+-- 1.1.0 exited the game with render_util.cpp AddEveryNthPoint
+-- "(num)>=(2) Actual: 1 < 2" in the first metres of a measurement: the engine
+-- samples a flow every 8 m and its cargo icon pass asserts on one point
+test("arrow: none shorter than ARROW_MIN_LENGTH, the tooltip still measures", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	local built = 0
+	local orig = api.type.LayerConfig.new
+	api.type.LayerConfig.new = function() built = built + 1; return orig() end
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	for _, x in ipairs({ 1.2, 2, 5, 8, 9, 12, 15, 16, 20, 23 }) do
+		local out, node = renderAt(m, true, { x = x, y = 0, z = 0 })
+		eq(findChild(node, "LayerConfigNode"), nil, "no arrow at " .. x .. " m")
+		assert(out.children[1].text:find("\n", 1, true), "distance shown at " .. x .. " m")
+	end
+	eq(built, 0, "no layer config built for a short line")
+	local _, node = renderAt(m, true, { x = 24, y = 0, z = 0 })
+	assert(findChild(node, "LayerConfigNode"), "arrow from 24 m")
+	-- short horizontally, long in 3D (a cliff): the engine measures in 3D
+	_, node = renderAt(m, true, { x = 0, y = 7, z = 30 })
+	assert(findChild(node, "LayerConfigNode"), "7 m across, 30 m up")
+	-- back to short: the arrow goes again
+	_, node = renderAt(m, true, { x = 10, y = 0, z = 0 })
+	eq(findChild(node, "LayerConfigNode"), nil, "back under the minimum")
+	eq(m.builtin.ActionDescriptor ~= nil, true)
+end)
+
+test("arrow: makeArrowConfig refuses short, junk and NaN keys", function()
+	resetApi()
+	local map = freshMap()
+	eq(map.makeArrowConfig({ 0, 0, 0, 15.9, 0, 0 }), nil)
+	eq(map.makeArrowConfig({ 0, 0, 0, 23.9, 0, 0 }), nil)
+	eq(map.makeArrowConfig(nil), nil)
+	eq(map.makeArrowConfig({ 0, 0, 0, 0 / 0, 0, 0 }), nil)
+	local cfg = assert(map.makeArrowConfig({ 0, 0, 0, 24, 0, 0 }))
+	eq(#cfg.cargoFlowRenderableConfig.flowData[1].cargoTypes, 0)
+	assert(map.makeArrowConfig({ 0, 0, 0, 0, 0, 24 }), "vertical 24 m")
+end)
+
+-- 1.1.0's first crash came right after leaving construction mode: the key is
+-- also the game's Surface Snapping key, so it can still be down when the
+-- plain map view comes back
+test("key down when a tool on top closes: no stale arrow, short lines none", function()
+	resetApi()
+	local map, m = freshMap(), newMods()
+	map.install(m.ug)
+	local t = 100
+	api.util.getApplicationTime = function() return t end
+	local baseAD = m.builtin.ActionDescriptor
+	renderAt(m, true, { x = 0, y = 0, z = 0 })
+	local _, node = renderAt(m, true, { x = 200, y = 0, z = 0 })
+	assert(findChild(node, "LayerConfigNode"), "arrow before the tool")
+	-- the tool (construction) is on top: the view does not render for a while
+	t = t + 30
+	local out
+	out, node = renderAt(m, true, { x = 203, y = 0, z = 0 })
+	eq(findChild(node, "LayerConfigNode"), nil, "new press point, no old arrow")
+	eq(out.children[1].text, "標高: 0.0 m", "measures from the new point")
+	t = t + 0.1
+	_, node = renderAt(m, true, { x = 210, y = 0, z = 0 })
+	eq(findChild(node, "LayerConfigNode"), nil, "7 m from the new point: no arrow")
+	eq(m.builtin.ActionDescriptor, baseAD, "descriptor put back")
+	-- key up: nothing, however often the view renders
+	for i = 1, 3 do
+		t = t + 0.1
+		_, node = renderAt(m, false, { x = 300, y = 0, z = 0 })
+		eq(findChild(node, "LayerConfigNode"), nil, "no arrow without the key " .. i)
+	end
+	eq(m.builtin.ActionDescriptor, baseAD)
 end)
 
 test("line state hook failing: altitude still shows, one log line", function()
