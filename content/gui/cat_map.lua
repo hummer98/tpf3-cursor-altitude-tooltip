@@ -57,8 +57,8 @@ map.ARROW_ICON_ALPHA = 0.0
 -- first sample while the arrow animates, so an arrow under 16 m can have a
 -- single point; its cargo icon pass (render_util.cpp AddEveryNthPoint)
 -- asserts on that and the game exits (1.1.0, the first metres of every
--- measurement). From 24 m there are at least 3 points. The base only draws
--- flows between industries and towns, never this short.
+-- measurement). From 24 m there are at least 3 points. (The base draws its
+-- flows between industries and towns.)
 map.ARROW_MIN_LENGTH = 24.0
 -- used only when the base colour table can't be read
 map.ARROW_FALLBACK_COLOR = { 0.54, 0.72, 0.95, 1.0 }
@@ -214,6 +214,7 @@ end
 -- true when the engine can draw the key as an arrow (ARROW_MIN_LENGTH)
 function map.arrowLongEnough(key)
 	if type(key) ~= "table" then return false end
+	for i = 1, 6 do if type(key[i]) ~= "number" then return false end end
 	local dx, dy, dz = key[4] - key[1], key[5] - key[2], key[6] - key[3]
 	local len = math.sqrt(dx * dx + dy * dy + dz * dz)
 	return len == len and len >= map.ARROW_MIN_LENGTH
